@@ -3,29 +3,34 @@ import pandas as pd
 from datetime import datetime
 import json
 import gspread
-from google.oauth2.service_account import Credentials
 
 # ==========================================
 # ⚙️ 1. 기본 환경 세팅 및 구글 시트 연동
 # ==========================================
-st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="centered")
+st.set_page_config(page_title="고촌 테니스클럽 야간반 출석부", layout="centered")
 
-# 💡 이사님 지정: 고정 코트 3면 (6번, 7번, 8번)
+# 💡 고정 코트 3면 (6번, 7번, 8번) & 야간 시간대 세팅
 COURT_NUMBERS = [6, 7, 8]
 TOTAL_COURTS = len(COURT_NUMBERS)
 
-# 시간대별 기본 세팅
-time_slots = ["14:00 ~ 15:00", "15:00 ~ 16:00", "16:00 ~ 17:00", "17:00 ~ 18:00"]
+time_slots = [
+    "18:00 ~ 19:00", 
+    "19:00 ~ 20:00", 
+    "20:00 ~ 21:00", 
+    "21:00 ~ 22:00"
+]
 
 @st.cache_resource
 def init_connection():
     try:
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         secret_raw = st.secrets["gcp_service_account"]
-        key_info = json.loads(secret_raw) if isinstance(secret_raw, str) else secret_raw
-        credentials = Credentials.from_service_account_info(key_info, scopes=scope)
-        client = gspread.authorize(credentials)
-        sheet = client.open("고촌테니스_출석부").sheet1
+        # JSON 문자열 또는 딕셔너리 형태 모두 유연하게 처리
+        key_info = json.loads(secret_raw) if isinstance(secret_raw, str) else dict(secret_raw)
+        
+        # gspread 최신 인증 엔진 사용 (더 빠르고 안정적)
+        client = gspread.service_account_from_dict(key_info)
+        # 이름(Sheet1, 시트1) 상관없이 무조건 첫 번째 탭(0)을 엽니다
+        sheet = client.open("고촌테니스_출석부").get_worksheet(0)
         return sheet
     except Exception as e:
         st.error(f"⚠️ 구글 시트 연동 실패: {e}")
@@ -97,57 +102,32 @@ if not current_db.empty and '참석시간' in current_db.columns:
 else:
     attendance_counts = {}
 
-# HTML/CSS로 그려내는 시각화 엔진
 for time_slot in time_slots:
     people = attendance_counts.get(time_slot, 0)
     density = people / TOTAL_COURTS
     
-    # 혼잡도에 따른 신호등 색상 세팅
     if density < 4.5:
         status_text = "쾌적"
-        bg_color = "#4CAF50" # 쨍한 초록색
+        bg_color = "#4CAF50"
         text_color = "white"
     elif density <= 6.5:
         status_text = "적정"
-        bg_color = "#FFC107" # 경고 노란색
+        bg_color = "#FFC107"
         text_color = "black"
     else:
         status_text = "포화"
-        bg_color = "#F44336" # 강렬한 빨간색
+        bg_color = "#F44336"
         text_color = "white"
 
-    # 3개의 가로형 코트를 생성하는 HTML 조립
+    # 코트 HTML 조립 (들여쓰기 제거하여 오류 원천 차단)
     courts_html = ""
     for court_num in COURT_NUMBERS:
-        courts_html += f"""
-        <div style="width: 80px; height: 50px; background-color: {bg_color}; border: 2px solid white; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
-            <!-- 테니스 네트 (가운데 점선) -->
-            <div style="position: absolute; left: 50%; top: 0; bottom: 0; border-left: 2px dashed rgba(255,255,255,0.7);"></div>
-            <span style="color: {text_color}; font-weight: bold; font-size: 13px; z-index: 1;">{court_num}번</span>
-        </div>
-        """
+        courts_html += f"<div style='width: 80px; height: 50px; background-color: {bg_color}; border: 2px solid white; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);'><div style='position: absolute; left: 50%; top: 0; bottom: 0; border-left: 2px dashed rgba(255,255,255,0.7);'></div><span style='color: {text_color}; font-weight: bold; font-size: 13px; z-index: 1;'>{court_num}번</span></div>"
 
-    # 시간대별 렌더링
-    st.markdown(
-        f"""
-        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between;">
-            <!-- 좌측: 시간 및 인원 텍스트 -->
-            <div style="flex: 1;">
-                <h4 style="margin: 0; color: #333; font-size: 18px;">{time_slot}</h4>
-                <p style="margin: 5px 0 0 0; font-size: 14px; color: #555;">
-                    현재 <strong>{people}명</strong> (코트당 {density:.1f}명) <br>
-                    <span style="font-weight: bold; color: {bg_color if bg_color != '#FFC107' else '#d4a100'};">상태: {status_text}</span>
-                </p>
-            </div>
-            
-            <!-- 우측: 미니 테니스 코트 3개 나열 -->
-            <div style="display: flex; gap: 8px;">
-                {courts_html}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # 전체 블록 HTML 조립 (들여쓰기 제거)
+    final_html = f"<div style='background-color: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between;'><div style='flex: 1;'><h4 style='margin: 0; color: #333; font-size: 18px;'>{time_slot}</h4><p style='margin: 5px 0 0 0; font-size: 14px; color: #555;'>현재 <strong>{people}명</strong> (코트당 {density:.1f}명) <br><span style='font-weight: bold; color: {bg_color if bg_color != \"#FFC107\" else \"#d4a100\"};'>상태: {status_text}</span></p></div><div style='display: flex; gap: 8px;'>{courts_html}</div></div>"
+    
+    st.markdown(final_html, unsafe_allow_html=True)
 
 # ==========================================
 # 📝 4. 상세 참석자 명단
