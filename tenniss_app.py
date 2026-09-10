@@ -5,9 +5,9 @@ from datetime import datetime
 # ==========================================
 # ⚙️ 1. 기본 환경 세팅 및 데이터베이스(메모리) 초기화
 # ==========================================
-st.set_page_config(page_title="스마트 테니스 출석부", layout="centered")
+st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="centered")
 
-# 시간대별 기본 코트 면수 세팅 (총무님이 사진 올리면 나중에 자동화될 부분)
+# 시간대별 기본 코트 면수 세팅
 default_schedule = {
     "14:00 ~ 15:00": {"코트수": 1},
     "15:00 ~ 16:00": {"코트수": 1},
@@ -20,7 +20,7 @@ if 'attendance_db' not in st.session_state:
     st.session_state['attendance_db'] = pd.DataFrame(columns=["이름", "참석시간", "등록일시"])
 
 def add_attendance(name, times):
-    """회원 출석 데이터를 DB에 밀어넣는 100% 자동화 함수"""
+    """회원 출석 데이터를 DB에 밀어넣는 함수"""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     new_data = [{"이름": name, "참석시간": t, "등록일시": now} for t in times]
     df_new = pd.DataFrame(new_data)
@@ -29,7 +29,7 @@ def add_attendance(name, times):
 # ==========================================
 # 🖥️ 2. 웹사이트 UI: 회원용 3초 출석 체크
 # ==========================================
-st.title("🎾 서남센터 주말 테니스 모임")
+st.title("🎾 고촌 테니스클럽 주말 모임")
 st.markdown("**복잡한 투표는 그만! 참석할 시간만 터치하세요.**")
 
 with st.expander("🙋‍♂️ [회원용] 3초 출석 체크하기", expanded=True):
@@ -50,7 +50,7 @@ with st.expander("🙋‍♂️ [회원용] 3초 출석 체크하기", expanded=
         elif not selected_times:
             st.warning("⚠️ 참석할 시간을 하나 이상 선택해 주세요!")
         else:
-            # 중복 등록 방지 로직 (예외 상황 선제적 방어)
+            # 중복 등록 방지 로직
             existing = st.session_state['attendance_db']
             if user_name in existing['이름'].values:
                 st.error("이미 등록된 닉네임입니다. 수정을 원하시면 총무에게 문의하세요!")
@@ -61,7 +61,7 @@ with st.expander("🙋‍♂️ [회원용] 3초 출석 체크하기", expanded=
 st.divider()
 
 # ==========================================
-# 📊 3. 웹사이트 UI: 이사님을 위한 실시간 혼잡도 히트맵
+# 📊 3. 웹사이트 UI: 실시간 혼잡도 히트맵
 # ==========================================
 st.subheader("🚥 실시간 코트 혼잡도 (히트맵)")
 st.info("초록색 타임에 나오시면 쉬지 않고 게임을 즐기실 수 있습니다!")
@@ -108,6 +108,6 @@ with st.expander("📋 시간대별 상세 참석자 명단 보기"):
     if current_db.empty:
         st.write("아직 등록된 회원이 없습니다.")
     else:
-        # 시간대별로 사람 이름 묶어서 보여주기 (가독성 극대화)
+        # 시간대별로 사람 이름 묶어서 보여주기
         summary_df = current_db.groupby('참석시간')['이름'].apply(lambda x: ', '.join(x)).reset_index()
         st.table(summary_df)
