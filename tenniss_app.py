@@ -3,9 +3,10 @@ import pandas as pd
 from datetime import datetime
 import json
 import gspread
+from google.oauth2.service_account import Credentials
 
 # ==========================================
-# ⚙️ 1. 기본 환경 세팅 및 구글 시트 연동
+# ⚙️ 1. 기본 환경 세팅 및 구글 시트 연동 (200 에러 완벽 해결)
 # ==========================================
 st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="centered")
 
@@ -22,9 +23,19 @@ time_slots = [
 @st.cache_resource
 def init_connection():
     try:
+        # 💡 [핵심 해결] 구버전 feeds 스코프를 버리고, 최신 V4 API 규격으로 통신망 전면 교체
+        scope = [
+            'https://www.googleapis.com/auth/spreadsheets',
+            'https://www.googleapis.com/auth/drive'
+        ]
+        
         secret_raw = st.secrets["gcp_service_account"]
         key_info = json.loads(secret_raw) if isinstance(secret_raw, str) else dict(secret_raw)
-        client = gspread.service_account_from_dict(key_info)
+        
+        credentials = Credentials.from_service_account_info(key_info, scopes=scope)
+        client = gspread.authorize(credentials)
+        
+        # 이름(Sheet1, 시트1) 상관없이 첫 번째 탭을 강제로 엽니다
         sheet = client.open("고촌테니스_출석부").get_worksheet(0)
         return sheet
     except Exception as e:
@@ -87,7 +98,7 @@ with st.expander("🙋‍♂️ [회원용] 3초 출석 체크하기", expanded=
 st.divider()
 
 # ==========================================
-# 📊 3. 웹사이트 UI: 테니스 코트 시각화 (세로형 정밀 묘사)
+# 📊 3. 웹사이트 UI: 테니스 코트 시각화 (단식 라인 추가 완료!)
 # ==========================================
 st.subheader("🚥 실시간 코트 현황판")
 st.info("초록색 타임에 나오시면 쾌적하게 게임을 즐기실 수 있습니다!")
@@ -115,29 +126,36 @@ for time_slot in time_slots:
 
     courts_html = ""
     for court_num in COURT_NUMBERS:
-        # 에러 방지를 위해 괄호()로 묶어서 문자열을 아주 깔끔하게 연결했습니다.
         court_div = (
             f"<div style='width: 60px; height: 90px; background-color: {bg_color}; "
             f"border: 2px solid white; border-radius: 4px; position: relative; "
             f"box-shadow: 2px 2px 5px rgba(0,0,0,0.15); flex-shrink: 0;'>"
             
+            # 🎾 [NEW] 좌측 단식 라인 (Alley Line)
+            f"<div style='position: absolute; top: 0; bottom: 0; left: 15%; "
+            f"border-left: 1px solid rgba(255,255,255,0.5);'></div>"
+            
+            # 🎾 [NEW] 우측 단식 라인 (Alley Line)
+            f"<div style='position: absolute; top: 0; bottom: 0; right: 15%; "
+            f"border-right: 1px solid rgba(255,255,255,0.5);'></div>"
+
             # 중앙 네트 (가로 점선)
             f"<div style='position: absolute; top: 50%; left: 0; right: 0; "
             f"border-top: 2px dashed rgba(255,255,255,0.9); transform: translateY(-50%);'></div>"
             
             # 상단 서비스 라인
-            f"<div style='position: absolute; top: 22%; left: 10%; right: 10%; "
+            f"<div style='position: absolute; top: 22%; left: 15%; right: 15%; "
             f"border-top: 1px solid rgba(255,255,255,0.6);'></div>"
             
             # 하단 서비스 라인
-            f"<div style='position: absolute; bottom: 22%; left: 10%; right: 10%; "
+            f"<div style='position: absolute; bottom: 22%; left: 15%; right: 15%; "
             f"border-top: 1px solid rgba(255,255,255,0.6);'></div>"
             
             # 센터 서비스 라인 (세로선)
             f"<div style='position: absolute; top: 22%; bottom: 22%; left: 50%; "
             f"border-left: 1px solid rgba(255,255,255,0.6); transform: translateX(-50%);'></div>"
             
-            # 코트 번호 뱃지 (가운데 정중앙 렌더링)
+            # 코트 번호 뱃지 (가운데 정중앙)
             f"<div style='position: absolute; top: 0; left: 0; width: 100%; height: 100%; "
             f"display: flex; align-items: center; justify-content: center; z-index: 10;'>"
             f"<span style='background-color: rgba(255,255,255,0.9); color: #333; "
