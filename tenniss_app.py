@@ -200,7 +200,7 @@ with tab1:
 
     st.divider()
 
-    # --- [현황판] 왼쪽 정렬로 수정됨 ---
+    # --- [현황판] 글자 바로 옆에서부터 왼쪽 정렬되도록 수정 ---
     st.subheader("🚥 실시간 코트 현황판")
     if not available_time_slots:
         st.warning("⚠️ 오늘 예약된 코트가 없습니다.")
@@ -230,7 +230,7 @@ with tab1:
             courts_html = ""
             for court_num in active_courts:
                 court_div = (
-                    f"<div style='width: 55px; height: 85px; background-color: {bg_color}; border: 2px solid white; border-radius: 6px; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.25); flex-shrink: 0;'>"
+                    f"<div style='width: 50px; height: 75px; background-color: {bg_color}; border: 2px solid white; border-radius: 6px; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.25); flex-shrink: 0;'>"
                     f"<div style='position: absolute; top: 0; bottom: 0; left: 15%; border-left: 1px solid rgba(255,255,255,0.5);'></div>"
                     f"<div style='position: absolute; top: 0; bottom: 0; right: 15%; border-right: 1px solid rgba(255,255,255,0.5);'></div>"
                     f"<div style='position: absolute; top: 50%; left: 0; right: 0; border-top: 2px dashed rgba(255,255,255,0.9); transform: translateY(-50%);'></div>"
@@ -238,21 +238,21 @@ with tab1:
                     f"<div style='position: absolute; bottom: 22%; left: 15%; right: 15%; border-top: 1px solid rgba(255,255,255,0.6);'></div>"
                     f"<div style='position: absolute; top: 22%; bottom: 22%; left: 50%; border-left: 1px solid rgba(255,255,255,0.6); transform: translateX(-50%);'></div>"
                     f"<div style='position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 10;'>"
-                    f"<span style='background-color: rgba(255,255,255,0.95); color: #222; padding: 3px 6px; border-radius: 12px; font-weight: 900; font-size: 13px; box-shadow: 1px 2px 4px rgba(0,0,0,0.3); border: 1px solid #ddd;'>{court_num}번</span>"
+                    f"<span style='background-color: rgba(255,255,255,0.95); color: #222; padding: 2px 5px; border-radius: 10px; font-weight: 900; font-size: 12px; box-shadow: 1px 2px 4px rgba(0,0,0,0.3); border: 1px solid #ddd;'>{court_num}번</span>"
                     f"</div></div>"
                 )
                 courts_html += court_div
 
-            # 💡 수정포인트: flex-direction을 column으로 바꾸고, justify-content를 flex-start로 변경
+            # 💡 수정포인트: display를 다시 가로 배치(flex-row)로 되돌리고 justify-content를 flex-start로 변경하여 밀착 정렬
             final_html = (
-                f"<div style='background-color: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(0,0,0,0.03);'>"
-                f"<div style='margin-bottom: 10px;'>"
+                f"<div style='background-color: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; display: flex; align-items: center; justify-content: flex-start; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.03); gap: 15px;'>"
+                f"<div style='min-width: max-content;'>"
                 f"<h4 style='margin: 0; color: #333; font-size: 17px;'>{time_slot}</h4>"
-                f"<p style='margin: 5px 0 0 0; font-size: 14px; color: #666;'>"
-                f"현재 <strong>{people}명</strong> (코트당 {density:.1f}명) | "
+                f"<p style='margin: 4px 0 0 0; font-size: 13px; color: #666;'>"
+                f"현재 <strong>{people}명</strong><br>"
                 f"<span style='font-weight: 800; color: {status_font_color};'>상태: {status_text}</span>"
                 f"</p></div>"
-                f"<div style='display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start;'>{courts_html}</div>"
+                f"<div style='display: flex; gap: 8px; flex-wrap: nowrap;'>{courts_html}</div>"
                 f"</div>"
             )
             st.markdown(final_html, unsafe_allow_html=True)
@@ -265,7 +265,7 @@ with tab1:
             st.table(summary_df)
 
 # ==========================================
-# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (HTML 에러 방지용 압축 포맷 적용)
+# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (모바일 줄바꿈 방지)
 # ==========================================
 with tab2:
     st.subheader(f"📅 {today_dt.year}년 {today_dt.month}월 추가 코트 현황")
@@ -278,14 +278,14 @@ with tab2:
         .cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
         .cal-th { background-color: #f8f9fa; padding: 8px 0; text-align: center; border: 1px solid #ddd; font-size: 13px; color: #333; }
         .cal-td { border: 1px solid #ddd; height: 110px; vertical-align: top; padding: 4px; background-color: #fff; transition: background 0.2s; }
-        .cal-td:hover { background-color: #f1f8e9; }
         .cal-date { font-weight: bold; font-size: 13px; color: #333; margin-bottom: 2px; display: block; text-align: left; padding-left: 2px;}
         .cal-other-month { color: #ccc; background-color: #fafafa; }
         .cal-today { background-color: #e8f5e9; border: 2px solid #4CAF50; }
         
         .mini-table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 3px; table-layout: fixed;}
-        .mini-th { font-size: 9px; border: 1px solid #ccc; background-color: #f0f0f0; padding: 1px 0; color: #555;}
-        .mini-td { font-size: 9px; border: 1px solid #ccc; padding: 1px 0; height: 14px;}
+        /* 💡 수정포인트: 모바일에서 세로로 깨지지 않도록 높이(height)를 줄이고 강제 줄바꿈(nowrap) 설정 */
+        .mini-th { font-size: 9px; border: 1px solid #ccc; background-color: #f0f0f0; padding: 0; color: #555; white-space: nowrap;}
+        .mini-td { font-size: 9px; border: 1px solid #ccc; padding: 0; height: 11px; white-space: nowrap; word-break: keep-all; letter-spacing: -0.5px;}
         .cell-booked { background-color: #4CAF50; }
         .cell-empty { background-color: #fafafa; }
         
@@ -317,8 +317,8 @@ with tab2:
                 if data == "holiday":
                     content_html = "<span class='holiday-badge'>🌕 연휴/휴장</span>"
                 else:
-                    # 💡 Streamlit 마크다운 파서가 깨지지 않도록 줄바꿈 없이 한 줄로 쭉 이어붙입니다.
-                    content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:34%;'>시</th><th class='mini-th' style='width:33%;'>7</th><th class='mini-th' style='width:33%;'>8</th></tr>"
+                    # width 비율 조정 및 단일 문자 사용으로 줄바꿈 원천 차단
+                    content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
                     for hr in ['18', '19', '20', '21']:
                         cls_7 = "cell-booked" if '7' in data[hr] else "cell-empty"
                         cls_8 = "cell-booked" if '8' in data[hr] else "cell-empty"
