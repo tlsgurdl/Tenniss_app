@@ -6,7 +6,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 # ==========================================
-# ⚙️ 1. 기본 환경 세팅 및 구글 시트 연동 (200 에러 완벽 해결)
+# ⚙️ 1. 기본 환경 세팅 및 구글 시트 연동 (에러 원인 추적기 탑재)
 # ==========================================
 st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="centered")
 
@@ -23,7 +23,6 @@ time_slots = [
 @st.cache_resource
 def init_connection():
     try:
-        # 💡 [핵심 해결] 구버전 feeds 스코프를 버리고, 최신 V4 API 규격으로 통신망 전면 교체
         scope = [
             'https://www.googleapis.com/auth/spreadsheets',
             'https://www.googleapis.com/auth/drive'
@@ -35,11 +34,18 @@ def init_connection():
         credentials = Credentials.from_service_account_info(key_info, scopes=scope)
         client = gspread.authorize(credentials)
         
-        # 이름(Sheet1, 시트1) 상관없이 첫 번째 탭을 강제로 엽니다
+        # 파일 이름으로 찾아서 첫 번째 탭 열기
         sheet = client.open("고촌테니스_출석부").get_worksheet(0)
         return sheet
+        
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error("⚠️ 에러 원인 파악 완료: 구글 시트 파일('고촌테니스_출석부')을 찾을 수 없습니다. 시트 [공유] 설정에 로봇 이메일을 '편집자'로 추가했는지 확인해 주세요!")
+        return None
+    except gspread.exceptions.APIError as e:
+        st.error(f"⚠️ 에러 원인 파악 완료: 구글 클라우드에서 'Google Sheets API' 스위치가 꺼져 있습니다. API를 [사용]으로 변경해 주세요! (상세내용: {e})")
+        return None
     except Exception as e:
-        st.error(f"⚠️ 구글 시트 연동 실패: {e}")
+        st.error(f"⚠️ 기타 연동 실패: {e}")
         return None
 
 sheet = init_connection()
@@ -98,7 +104,7 @@ with st.expander("🙋‍♂️ [회원용] 3초 출석 체크하기", expanded=
 st.divider()
 
 # ==========================================
-# 📊 3. 웹사이트 UI: 테니스 코트 시각화 (단식 라인 추가 완료!)
+# 📊 3. 웹사이트 UI: 테니스 코트 시각화
 # ==========================================
 st.subheader("🚥 실시간 코트 현황판")
 st.info("초록색 타임에 나오시면 쾌적하게 게임을 즐기실 수 있습니다!")
@@ -131,44 +137,29 @@ for time_slot in time_slots:
             f"border: 2px solid white; border-radius: 4px; position: relative; "
             f"box-shadow: 2px 2px 5px rgba(0,0,0,0.15); flex-shrink: 0;'>"
             
-            # 🎾 [NEW] 좌측 단식 라인 (Alley Line)
-            f"<div style='position: absolute; top: 0; bottom: 0; left: 15%; "
-            f"border-left: 1px solid rgba(255,255,255,0.5);'></div>"
-            
-            # 🎾 [NEW] 우측 단식 라인 (Alley Line)
-            f"<div style='position: absolute; top: 0; bottom: 0; right: 15%; "
-            f"border-right: 1px solid rgba(255,255,255,0.5);'></div>"
+            # 좌우 단식 라인
+            f"<div style='position: absolute; top: 0; bottom: 0; left: 15%; border-left: 1px solid rgba(255,255,255,0.5);'></div>"
+            f"<div style='position: absolute; top: 0; bottom: 0; right: 15%; border-right: 1px solid rgba(255,255,255,0.5);'></div>"
 
-            # 중앙 네트 (가로 점선)
-            f"<div style='position: absolute; top: 50%; left: 0; right: 0; "
-            f"border-top: 2px dashed rgba(255,255,255,0.9); transform: translateY(-50%);'></div>"
+            # 중앙 네트
+            f"<div style='position: absolute; top: 50%; left: 0; right: 0; border-top: 2px dashed rgba(255,255,255,0.9); transform: translateY(-50%);'></div>"
             
-            # 상단 서비스 라인
-            f"<div style='position: absolute; top: 22%; left: 15%; right: 15%; "
-            f"border-top: 1px solid rgba(255,255,255,0.6);'></div>"
+            # 서비스 라인
+            f"<div style='position: absolute; top: 22%; left: 15%; right: 15%; border-top: 1px solid rgba(255,255,255,0.6);'></div>"
+            f"<div style='position: absolute; bottom: 22%; left: 15%; right: 15%; border-top: 1px solid rgba(255,255,255,0.6);'></div>"
             
-            # 하단 서비스 라인
-            f"<div style='position: absolute; bottom: 22%; left: 15%; right: 15%; "
-            f"border-top: 1px solid rgba(255,255,255,0.6);'></div>"
+            # 센터 라인
+            f"<div style='position: absolute; top: 22%; bottom: 22%; left: 50%; border-left: 1px solid rgba(255,255,255,0.6); transform: translateX(-50%);'></div>"
             
-            # 센터 서비스 라인 (세로선)
-            f"<div style='position: absolute; top: 22%; bottom: 22%; left: 50%; "
-            f"border-left: 1px solid rgba(255,255,255,0.6); transform: translateX(-50%);'></div>"
-            
-            # 코트 번호 뱃지 (가운데 정중앙)
-            f"<div style='position: absolute; top: 0; left: 0; width: 100%; height: 100%; "
-            f"display: flex; align-items: center; justify-content: center; z-index: 10;'>"
-            f"<span style='background-color: rgba(255,255,255,0.9); color: #333; "
-            f"padding: 2px 6px; border-radius: 10px; font-weight: bold; font-size: 13px; "
-            f"box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'>{court_num}번</span>"
+            # 코트 번호 뱃지
+            f"<div style='position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 10;'>"
+            f"<span style='background-color: rgba(255,255,255,0.9); color: #333; padding: 2px 6px; border-radius: 10px; font-weight: bold; font-size: 13px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'>{court_num}번</span>"
             f"</div></div>"
         )
         courts_html += court_div
 
     final_html = (
-        f"<div style='background-color: #f8f9fa; padding: 15px; border-radius: 12px; "
-        f"margin-bottom: 12px; border: 1px solid #e0e0e0; display: flex; align-items: center; "
-        f"justify-content: space-between; overflow-x: auto;'>"
+        f"<div style='background-color: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; overflow-x: auto;'>"
         f"<div style='flex: 1; min-width: 120px;'>"
         f"<h4 style='margin: 0; color: #333; font-size: 18px;'>{time_slot}</h4>"
         f"<p style='margin: 5px 0 0 0; font-size: 14px; color: #555;'>"
