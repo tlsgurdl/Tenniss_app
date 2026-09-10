@@ -1,36 +1,60 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import json
+import gspread
+from google.oauth2.service_account import Credentials
 
 # ==========================================
-# ⚙️ 1. 기본 환경 세팅 및 데이터베이스(메모리) 초기화
+# ⚙️ 1. 기본 환경 세팅 및 구글 시트 연동
 # ==========================================
 st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="centered")
 
-# 시간대별 기본 코트 면수 세팅
-default_schedule = {
-    "14:00 ~ 15:00": {"코트수": 1},
-    "15:00 ~ 16:00": {"코트수": 1},
-    "16:00 ~ 17:00": {"코트수": 2},
-    "17:00 ~ 18:00": {"코트수": 2}
-}
+# 💡 이사님 지정: 고정 코트 3면 (6번, 7번, 8번)
+COURT_NUMBERS = [6, 7, 8]
+TOTAL_COURTS = len(COURT_NUMBERS)
 
-# 임시 데이터베이스 (앱이 켜져 있는 동안만 유지)
-if 'attendance_db' not in st.session_state:
-    st.session_state['attendance_db'] = pd.DataFrame(columns=["이름", "참석시간", "등록일시"])
+# 시간대별 기본 세팅
+time_slots = ["14:00 ~ 15:00", "15:00 ~ 16:00", "16:00 ~ 17:00", "17:00 ~ 18:00"]
+
+@st.cache_resource
+def init_connection():
+    try:
+        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        secret_raw = st.secrets["gcp_service_account"]
+        key_info = json.loads(secret_raw) if isinstance(secret_raw, str) else secret_raw
+        credentials = Credentials.from_service_account_info(key_info, scopes=scope)
+        client = gspread.authorize(credentials)
+        sheet = client.open("고촌테니스_출석부").sheet1
+        return sheet
+    except Exception as e:
+        st.error(f"⚠️ 구글 시트 연동 실패: {e}")
+        return None
+
+sheet = init_connection()
+
+def fetch_data():
+    if sheet:
+        try:
+            data = sheet.get_all_records()
+            return pd.DataFrame(data)
+        except Exception:
+            pass
+    return pd.DataFrame(columns=["이름", "참석시간", "등록일시"])
 
 def add_attendance(name, times):
-    """회원 출석 데이터를 DB에 밀어넣는 함수"""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_data = [{"이름": name, "참석시간": t, "등록일시": now} for t in times]
-    df_new = pd.DataFrame(new_data)
-    st.session_state['attendance_db'] = pd.concat([st.session_state['attendance_db'], df_new], ignore_index=True)
+    rows_to_insert = [[name, t, now] for t in times]
+    if sheet:
+        sheet.append_rows(rows_to_insert)
 
 # ==========================================
 # 🖥️ 2. 웹사이트 UI: 회원용 3초 출석 체크
 # ==========================================
-st.title("🎾 고촌 테니스클럽")
+st.title("🎾 고촌 테니스클럽 출석부")
 st.markdown("**복잡한 투표는 그만! 참석할 시간만 터치하세요.**")
+
+current_db = fetch_data()
 
 with st.expander("🙋‍♂️ [회원용] 3초 출석 체크하기", expanded=True):
     col1, col2 = st.columns([1, 2])
@@ -40,74 +64,97 @@ with st.expander("🙋‍♂️ [회원용] 3초 출석 체크하기", expanded=
     with col2:
         st.markdown("참석 시간 선택 (복수 선택 가능)")
         selected_times = []
-        for time_slot in default_schedule.keys():
+        for time_slot in time_slots:
             if st.checkbox(time_slot):
                 selected_times.append(time_slot)
                 
     if st.button("🚀 출석 등록 완료", use_container_width=True):
-        if not user_name.strip():
+        if not sheet:
+            st.error("⚠️ 데이터베이스에 연결되지 않았습니다.")
+        elif not user_name.strip():
             st.warning("⚠️ 닉네임을 먼저 입력해 주세요!")
         elif not selected_times:
             st.warning("⚠️ 참석할 시간을 하나 이상 선택해 주세요!")
         else:
-            # 중복 등록 방지 로직
-            existing = st.session_state['attendance_db']
-            if user_name in existing['이름'].values:
-                st.error("이미 등록된 닉네임입니다. 수정을 원하시면 총무에게 문의하세요!")
+            if not current_db.empty and user_name in current_db['이름'].values:
+                st.error(f"🚨 '{user_name}'님은 이미 등록되어 있습니다. 변경은 총무에게 문의하세요!")
             else:
-                add_attendance(user_name, selected_times)
-                st.success(f"🎉 {user_name}님, 등록이 완료되었습니다! 아래 혼잡도를 확인하세요.")
+                with st.spinner("구글 장부에 안전하게 기록 중입니다..."):
+                    add_attendance(user_name, selected_times)
+                    st.success(f"🎉 {user_name}님, 등록이 완료되었습니다!")
+                    st.rerun()
 
 st.divider()
 
 # ==========================================
-# 📊 3. 웹사이트 UI: 실시간 혼잡도 히트맵
+# 📊 3. 웹사이트 UI: 테니스 코트 시각화 혼잡도
 # ==========================================
-st.subheader("🚥 실시간 코트 혼잡도 (히트맵)")
-st.info("초록색 타임에 나오시면 쉬지 않고 게임을 즐기실 수 있습니다!")
+st.subheader("🚥 실시간 코트 현황판")
+st.info("초록색 타임에 나오시면 쾌적하게 게임을 즐기실 수 있습니다!")
 
-current_db = st.session_state['attendance_db']
+if not current_db.empty and '참석시간' in current_db.columns:
+    attendance_counts = current_db['참석시간'].value_counts().to_dict()
+else:
+    attendance_counts = {}
 
-# 시간대별 참석 인원 집계
-attendance_counts = current_db['참석시간'].value_counts().to_dict()
-
-# 히트맵 그리기
-for time_slot, info in default_schedule.items():
-    courts = info["코트수"]
+# HTML/CSS로 그려내는 시각화 엔진
+for time_slot in time_slots:
     people = attendance_counts.get(time_slot, 0)
+    density = people / TOTAL_COURTS
     
-    # 1면당 적정 인원 계산 (신호등 로직)
-    density = people / courts if courts > 0 else 0
-    
+    # 혼잡도에 따른 신호등 색상 세팅
     if density < 4.5:
-        color = "🟢 쾌적"
-        bg_color = "#e6ffe6"
+        status_text = "쾌적"
+        bg_color = "#4CAF50" # 쨍한 초록색
+        text_color = "white"
     elif density <= 6.5:
-        color = "🟡 적정 (대기 조금)"
-        bg_color = "#ffffe6"
+        status_text = "적정"
+        bg_color = "#FFC107" # 경고 노란색
+        text_color = "black"
     else:
-        color = "🔴 포화 (대기 지옥)"
-        bg_color = "#ffe6e6"
-        
+        status_text = "포화"
+        bg_color = "#F44336" # 강렬한 빨간색
+        text_color = "white"
+
+    # 3개의 가로형 코트를 생성하는 HTML 조립
+    courts_html = ""
+    for court_num in COURT_NUMBERS:
+        courts_html += f"""
+        <div style="width: 80px; height: 50px; background-color: {bg_color}; border: 2px solid white; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
+            <!-- 테니스 네트 (가운데 점선) -->
+            <div style="position: absolute; left: 50%; top: 0; bottom: 0; border-left: 2px dashed rgba(255,255,255,0.7);"></div>
+            <span style="color: {text_color}; font-weight: bold; font-size: 13px; z-index: 1;">{court_num}번</span>
+        </div>
+        """
+
+    # 시간대별 렌더링
     st.markdown(
         f"""
-        <div style="background-color: {bg_color}; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd;">
-            <h4 style="margin: 0; color: #333;">{time_slot} | 코트 {courts}면</h4>
-            <p style="margin: 5px 0 0 0; font-size: 16px;">
-                현재 참석: <strong>{people}명</strong> (코트당 평균 {density:.1f}명) ➔ <strong>{color}</strong>
-            </p>
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between;">
+            <!-- 좌측: 시간 및 인원 텍스트 -->
+            <div style="flex: 1;">
+                <h4 style="margin: 0; color: #333; font-size: 18px;">{time_slot}</h4>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #555;">
+                    현재 <strong>{people}명</strong> (코트당 {density:.1f}명) <br>
+                    <span style="font-weight: bold; color: {bg_color if bg_color != '#FFC107' else '#d4a100'};">상태: {status_text}</span>
+                </p>
+            </div>
+            
+            <!-- 우측: 미니 테니스 코트 3개 나열 -->
+            <div style="display: flex; gap: 8px;">
+                {courts_html}
+            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 # ==========================================
-# 📝 4. 상세 참석자 명단 (접었다 펴기)
+# 📝 4. 상세 참석자 명단
 # ==========================================
 with st.expander("📋 시간대별 상세 참석자 명단 보기"):
-    if current_db.empty:
+    if current_db.empty or '참석시간' not in current_db.columns:
         st.write("아직 등록된 회원이 없습니다.")
     else:
-        # 시간대별로 사람 이름 묶어서 보여주기
-        summary_df = current_db.groupby('참석시간')['이름'].apply(lambda x: ', '.join(x)).reset_index()
+        summary_df = current_db.groupby('참석시간')['이름'].apply(lambda x: ', '.join(x.astype(str))).reset_index()
         st.table(summary_df)
