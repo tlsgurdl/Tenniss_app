@@ -5,7 +5,7 @@ import json
 import gspread
 from google.oauth2.service_account import Credentials
 import calendar
-import re # 💡 숫자를 하나씩 쪼개기 위한 라이브러리
+import re 
 
 # ==========================================
 # 🎨 0. 극강의 UI/UX CSS 강제 주입
@@ -14,7 +14,7 @@ st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="center
 
 st.markdown("""
 <style>
-    /* 1. 텍스트 입력창 테두리 초강력 고정 (절대 안 보일 수 없게 검정색 2px 고정) */
+    /* 텍스트 입력창 테두리 초강력 고정 */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
         border: 2px solid #000000 !important;
         border-radius: 8px !important;
@@ -30,7 +30,6 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* 체크박스 디자인 */
     div[data-testid="stCheckbox"] {
         padding: 5px 10px;
         border-radius: 6px;
@@ -40,7 +39,6 @@ st.markdown("""
         background-color: #f1f8e9;
     }
 
-    /* Expander 그림자 효과 */
     div[data-testid="stExpander"] {
         border: 1px solid #e0e0e0;
         border-radius: 12px;
@@ -82,7 +80,7 @@ def init_connection():
 sheet, sheet_schedule = init_connection()
 
 # ==========================================
-# 📅 2. 스케줄 데이터 파싱 ("67", "678" 분리 로직 추가)
+# 📅 2. 스케줄 데이터 파싱
 # ==========================================
 today_dt = datetime.today()
 today_str = today_dt.strftime('%Y-%m-%d')
@@ -97,34 +95,31 @@ if sheet_schedule:
             date_val = str(row.get('날짜', '')).strip()
             if not date_val: continue
             
-            # --- 1. 오늘 날짜 코트 파싱 (출석부용) ---
+            # --- 1. 오늘 날짜 코트 파싱 ---
             if date_val == today_str:
                 for col_time, ui_time in time_slots_mapping.items():
                     val = str(row.get(col_time, "")).strip()
                     if val and "휴" not in val and "block" not in val:
-                        # 💡 핵심: "67" -> 숫자만 추출 후 리스트로 분리 -> ['6', '7']
                         digits = re.sub(r'\D', '', val)
                         extracted_courts = list(digits) 
                         today_schedule[ui_time] = extracted_courts
                     else:
                         today_schedule[ui_time] = []
             
-            # --- 2. 월간 달력용 미니 표 데이터 파싱 ---
+            # --- 2. 월간 달력용 데이터 파싱 ---
             is_holiday = False
             has_extra_courts = False
             day_data = {'18': [], '19': [], '20': [], '21': []}
             
             for col_time in ['18:00', '19:00', '20:00', '21:00']:
                 val = str(row.get(col_time, "")).strip()
-                hour = col_time.split(':')[0] # '18', '19' 등
+                hour = col_time.split(':')[0]
                 
                 if "휴" in val or "추석" in val:
                     is_holiday = True
                 elif val and "block" not in val:
                     digits = re.sub(r'\D', '', val)
                     courts = list(digits)
-                    
-                    # 7번이나 8번이 있으면 시간대별로 기록
                     if '7' in courts: 
                         day_data[hour].append('7')
                         has_extra_courts = True
@@ -205,7 +200,7 @@ with tab1:
 
     st.divider()
 
-    # --- [현황판] 코트 시각화 (각 코트별 독립된 이미지 나란히 표출) ---
+    # --- [현황판] 왼쪽 정렬로 수정됨 ---
     st.subheader("🚥 실시간 코트 현황판")
     if not available_time_slots:
         st.warning("⚠️ 오늘 예약된 코트가 없습니다.")
@@ -232,7 +227,6 @@ with tab1:
 
             status_font_color = bg_color if bg_color != "#FFC107" else "#d4a100"
 
-            # 💡 수정됨: 분리된 번호(예: '6', '7')를 이용해 코트를 옆으로(flex) 나란히 그립니다.
             courts_html = ""
             for court_num in active_courts:
                 court_div = (
@@ -249,15 +243,16 @@ with tab1:
                 )
                 courts_html += court_div
 
+            # 💡 수정포인트: flex-direction을 column으로 바꾸고, justify-content를 flex-start로 변경
             final_html = (
-                f"<div style='background-color: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.03);'>"
-                f"<div style='flex: 1; min-width: 130px;'>"
+                f"<div style='background-color: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(0,0,0,0.03);'>"
+                f"<div style='margin-bottom: 10px;'>"
                 f"<h4 style='margin: 0; color: #333; font-size: 17px;'>{time_slot}</h4>"
                 f"<p style='margin: 5px 0 0 0; font-size: 14px; color: #666;'>"
-                f"현재 <strong>{people}명</strong> (코트당 {density:.1f}명) <br>"
+                f"현재 <strong>{people}명</strong> (코트당 {density:.1f}명) | "
                 f"<span style='font-weight: 800; color: {status_font_color};'>상태: {status_text}</span>"
                 f"</p></div>"
-                f"<div style='display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;'>{courts_html}</div>"
+                f"<div style='display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start;'>{courts_html}</div>"
                 f"</div>"
             )
             st.markdown(final_html, unsafe_allow_html=True)
@@ -270,7 +265,7 @@ with tab1:
             st.table(summary_df)
 
 # ==========================================
-# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (미니 히트맵 표 적용)
+# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (HTML 에러 방지용 압축 포맷 적용)
 # ==========================================
 with tab2:
     st.subheader(f"📅 {today_dt.year}년 {today_dt.month}월 추가 코트 현황")
@@ -288,12 +283,11 @@ with tab2:
         .cal-other-month { color: #ccc; background-color: #fafafa; }
         .cal-today { background-color: #e8f5e9; border: 2px solid #4CAF50; }
         
-        /* 미니 표 스타일 */
         .mini-table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 3px; table-layout: fixed;}
         .mini-th { font-size: 9px; border: 1px solid #ccc; background-color: #f0f0f0; padding: 1px 0; color: #555;}
         .mini-td { font-size: 9px; border: 1px solid #ccc; padding: 1px 0; height: 14px;}
-        .cell-booked { background-color: #4CAF50; } /* 예약된 칸은 초록색 */
-        .cell-empty { background-color: #fafafa; }  /* 빈 칸은 연회색 */
+        .cell-booked { background-color: #4CAF50; }
+        .cell-empty { background-color: #fafafa; }
         
         .holiday-badge { display: block; background-color: #ffebee; color: #c62828; font-size: 11px; padding: 3px; border-radius: 4px; font-weight: bold; text-align: center; margin-top: 15px;}
     </style>
@@ -318,35 +312,17 @@ with tab2:
                 
             content_html = ""
             
-            # 💡 [핵심] 7번, 8번 예약이 있는 날짜에만 미니 표 렌더링
             if date_str in monthly_schedule_dict:
                 data = monthly_schedule_dict[date_str]
                 if data == "holiday":
                     content_html = "<span class='holiday-badge'>🌕 연휴/휴장</span>"
                 else:
-                    # 미니 표 생성 시작
-                    content_html = """
-                    <table class='mini-table'>
-                        <tr>
-                            <th class='mini-th' style='width:34%;'>시</th>
-                            <th class='mini-th' style='width:33%;'>7번</th>
-                            <th class='mini-th' style='width:33%;'>8번</th>
-                        </tr>
-                    """
-                    # 18시, 19시, 20시, 21시 순회하며 행 추가
+                    # 💡 Streamlit 마크다운 파서가 깨지지 않도록 줄바꿈 없이 한 줄로 쭉 이어붙입니다.
+                    content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:34%;'>시</th><th class='mini-th' style='width:33%;'>7</th><th class='mini-th' style='width:33%;'>8</th></tr>"
                     for hr in ['18', '19', '20', '21']:
-                        # 7번 코트 색칠 여부
                         cls_7 = "cell-booked" if '7' in data[hr] else "cell-empty"
-                        # 8번 코트 색칠 여부
                         cls_8 = "cell-booked" if '8' in data[hr] else "cell-empty"
-                        
-                        content_html += f"""
-                        <tr>
-                            <td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td>
-                            <td class='mini-td {cls_7}'></td>
-                            <td class='mini-td {cls_8}'></td>
-                        </tr>
-                        """
+                        content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
                     content_html += "</table>"
                 
             calendar_html += f"<td class='{td_class}'><span class='cal-date'>{day_num}</span>{content_html}</td>"
