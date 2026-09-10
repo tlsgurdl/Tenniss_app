@@ -5,6 +5,7 @@ import json
 import gspread
 from google.oauth2.service_account import Credentials
 import calendar
+import re # 숫자 추출을 위한 정규식 라이브러리 추가
 
 # ==========================================
 # 🎨 0. 극강의 UI/UX CSS 강제 주입 (그림자 및 테두리 효과)
@@ -13,19 +14,20 @@ st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="center
 
 st.markdown("""
 <style>
-    /* 1. 텍스트 입력창 테두리 강화 (밝은 모드에서 하얗게 날아가는 현상 방지) */
-    div[data-testid="stTextInput"] input {
-        border: 1.5px solid #999999 !important; /* 테두리를 진한 회색으로 강제 고정 */
-        border-radius: 6px !important;
-        padding: 10px 12px !important;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.05) !important;
+    /* 1. 텍스트 입력창 테두리 초강력 고정 (절대 하얗게 날아가지 않음) */
+    div[data-testid="stTextInput"] div[data-baseweb="input"] {
+        border: 2px solid #333333 !important; /* 진한 검회색 테두리 */
+        border-radius: 8px !important;
         background-color: #ffffff !important;
-        color: #333333 !important;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1) !important;
     }
-    div[data-testid="stTextInput"] input:focus {
-        border: 2px solid #4CAF50 !important;
-        box-shadow: 2px 2px 10px rgba(76, 175, 80, 0.2) !important;
-        outline: none !important;
+    div[data-testid="stTextInput"] input {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
+        border: 2px solid #4CAF50 !important; /* 클릭 시 초록색 */
+        box-shadow: 2px 2px 10px rgba(76, 175, 80, 0.3) !important;
     }
     
     /* 체크박스 컨테이너 디자인 */
@@ -40,9 +42,9 @@ st.markdown("""
 
     /* 접었다 펴는 Expander 카드 그림자 효과 */
     div[data-testid="stExpander"] {
-        border: 1px solid #f0f0f0;
+        border: 1px solid #e0e0e0;
         border-radius: 12px;
-        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.05);
+        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -95,32 +97,40 @@ if sheet_schedule:
             date_val = str(row.get('날짜', '')).strip()
             if not date_val: continue
             
-            # 1. 오늘 날짜 코트 파싱 (출석부용)
+            # 1. 오늘 날짜 코트 파싱 (출석부용) - 정규식으로 숫자만 완벽 추출
             if date_val == today_str:
                 for col_time, ui_time in time_slots_mapping.items():
                     val = str(row.get(col_time, "")).strip()
                     if val and "휴" not in val:
-                        today_schedule[ui_time] = [int(x.strip()) for x in val.split(",") if x.strip().isdigit()]
+                        # "6, 7번" 같이 문자가 섞여 있어도 숫자 [6, 7]만 정확히 추출
+                        extracted_courts = [int(x) for x in re.findall(r'\d+', val)]
+                        today_schedule[ui_time] = extracted_courts
                     else:
                         today_schedule[ui_time] = []
             
-            # 2. 월간 달력용 데이터 요약 파싱
-            courts_for_day = set()
+            # 2. 월간 달력용 데이터 요약 파싱 (6번 제외, 추가 코트 및 시간대 표시)
+            day_schedule_details = []
             is_holiday = False
-            for col in ['18:00', '19:00', '20:00', '21:00']:
-                val = str(row.get(col, "")).strip()
+            for col_time in ['18:00', '19:00', '20:00', '21:00']:
+                val = str(row.get(col_time, "")).strip()
                 if "휴" in val or "추석" in val:
                     is_holiday = True
-                if val and "휴" not in val and "block" not in val:
-                    courts_for_day.update([x.strip() for x in val.split(",") if x.strip().isdigit()])
+                elif val and "block" not in val:
+                    # 해당 시간대의 모든 숫자 추출
+                    courts = re.findall(r'\d+', val)
+                    # 6번 코트를 제외한 추가 코트만 리스트업
+                    extra_courts = [c for c in courts if c != '6']
+                    
+                    if extra_courts:
+                        # 추가 코트가 있을 경우 "19:00 (+7,8번)" 형태로 저장
+                        day_schedule_details.append(f"{col_time} (+{','.join(extra_courts)}번)")
             
-            # 💡 [핵심] 달력 표시 내용을 "코트 6,7" -> "2면 예약 (6,7번)" 형태로 가독성 향상
             if is_holiday:
-                monthly_schedule_dict[date_val] = "🌕 연휴"
-            elif courts_for_day:
-                court_list = sorted(list(courts_for_day))
-                court_count = len(court_list)
-                monthly_schedule_dict[date_val] = f"🎾 {court_count}면 예약<br><span style='font-size:10.5px; font-weight:normal; color:#555;'>(코트: {','.join(court_list)})</span>"
+                monthly_schedule_dict[date_val] = "<span class='cal-badge cal-holiday'>🌕 연휴/휴장</span>"
+            elif day_schedule_details:
+                # 리스트에 담긴 시간대별 추가 코트 내역을 줄바꿈(<br>)으로 합침
+                joined_details = "<br>".join(day_schedule_details)
+                monthly_schedule_dict[date_val] = f"<div class='cal-badge' style='text-align:left;'>{joined_details}</div>"
 
     except Exception as e:
         st.warning("⚠️ 스케줄 데이터를 읽는 중 문제가 발생했습니다.")
@@ -217,11 +227,11 @@ with tab1:
 
             status_font_color = bg_color if bg_color != "#FFC107" else "#d4a100"
 
-            # 💡 [핵심] 코트 개수만큼 각각 독립된 그래픽을 가로로 나열(flex)하여 시각화합니다.
+            # 💡 [핵심] 추출된 코트 번호 개수만큼 가로로 나란히(inline-block) 생성합니다.
             courts_html = ""
             for court_num in active_courts:
                 court_div = (
-                    f"<div style='width: 55px; height: 85px; background-color: {bg_color}; border: 2px solid white; border-radius: 6px; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.25); flex-shrink: 0;'>"
+                    f"<div style='display: inline-block; width: 55px; height: 85px; margin-left: 8px; margin-bottom: 5px; background-color: {bg_color}; border: 2px solid white; border-radius: 6px; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.25);'>"
                     f"<div style='position: absolute; top: 0; bottom: 0; left: 15%; border-left: 1px solid rgba(255,255,255,0.5);'></div>"
                     f"<div style='position: absolute; top: 0; bottom: 0; right: 15%; border-right: 1px solid rgba(255,255,255,0.5);'></div>"
                     f"<div style='position: absolute; top: 50%; left: 0; right: 0; border-top: 2px dashed rgba(255,255,255,0.9); transform: translateY(-50%);'></div>"
@@ -242,8 +252,7 @@ with tab1:
                 f"현재 <strong>{people}명</strong> (코트당 {density:.1f}명) <br>"
                 f"<span style='font-weight: 800; color: {status_font_color};'>상태: {status_text}</span>"
                 f"</p></div>"
-                # flex-wrap과 gap을 주어 3~4개의 코트가 직관적으로 떨어져 보이도록 구성
-                f"<div style='display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;'>{courts_html}</div>"
+                f"<div>{courts_html}</div>"
                 f"</div>"
             )
             st.markdown(final_html, unsafe_allow_html=True)
@@ -261,22 +270,20 @@ with tab1:
 with tab2:
     st.subheader(f"📅 {today_dt.year}년 {today_dt.month}월 예약 현황")
     
-    # 파이썬 달력 생성기 (월요일부터 시작)
     cal = calendar.Calendar(firstweekday=0)
     month_dates = cal.monthdatescalendar(today_dt.year, today_dt.month)
     
-    # HTML 달력 테이블 조립
     calendar_html = """
     <style>
         .cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
         .cal-th { background-color: #f8f9fa; padding: 10px 0; text-align: center; border: 1px solid #e0e0e0; font-size: 14px; color: #555; }
-        .cal-td { border: 1px solid #e0e0e0; height: 85px; vertical-align: top; padding: 5px; background-color: #fff; transition: background 0.2s; }
+        .cal-td { border: 1px solid #e0e0e0; height: 95px; vertical-align: top; padding: 5px; background-color: #fff; transition: background 0.2s; }
         .cal-td:hover { background-color: #f1f8e9; }
         .cal-date { font-weight: bold; font-size: 14px; color: #333; margin-bottom: 5px; display: block; }
         .cal-other-month { color: #ccc; background-color: #fafafa; }
         .cal-today { background-color: #e8f5e9; border: 2px solid #4CAF50; }
-        .cal-badge { display: inline-block; background-color: #e3f2fd; color: #1565c0; font-size: 12px; padding: 4px; border-radius: 4px; font-weight: bold; width: 100%; box-sizing: border-box; text-align: center; margin-top: 2px; line-height: 1.3;}
-        .cal-holiday { background-color: #ffebee; color: #c62828; }
+        .cal-badge { display: inline-block; background-color: #e3f2fd; color: #1565c0; font-size: 11px; padding: 4px; border-radius: 4px; font-weight: 600; width: 100%; box-sizing: border-box; margin-top: 2px; line-height: 1.4;}
+        .cal-holiday { background-color: #ffebee; color: #c62828; text-align: center !important;}
     </style>
     <table class="cal-table">
         <tr>
@@ -291,19 +298,16 @@ with tab2:
             date_str = day.strftime('%Y-%m-%d')
             day_num = day.day
             
-            # 스타일 분기 처리 (다른 달, 오늘)
             td_class = "cal-td"
             if day.month != today_dt.month:
                 td_class += " cal-other-month"
             if date_str == today_str:
                 td_class += " cal-today"
                 
-            # 스케줄 배지 렌더링
             badge_html = ""
+            # 파싱된 달력 스케줄 배지 삽입 (6번 외 코트가 있을 때만 표시됨)
             if date_str in monthly_schedule_dict:
-                schedule_text = monthly_schedule_dict[date_str]
-                badge_class = "cal-badge cal-holiday" if "연휴" in schedule_text else "cal-badge"
-                badge_html = f"<span class='{badge_class}'>{schedule_text}</span>"
+                badge_html = monthly_schedule_dict[date_str]
                 
             calendar_html += f"<td class='{td_class}'><span class='cal-date'>{day_num}</span>{badge_html}</td>"
         calendar_html += "</tr>"
@@ -311,4 +315,4 @@ with tab2:
     calendar_html += "</table>"
     
     st.markdown(calendar_html, unsafe_allow_html=True)
-    st.caption("💡 구글 시트 '스케줄' 탭의 데이터가 자동으로 달력에 연동됩니다.")
+    st.caption("💡 6번 코트는 기본 예약이므로 달력에 생략되며, 추가 코트(7번 등) 예약 시간대만 달력에 표시됩니다.")
