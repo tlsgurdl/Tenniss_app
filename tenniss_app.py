@@ -14,7 +14,6 @@ st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="center
 
 st.markdown("""
 <style>
-    /* 텍스트 입력창 테두리 초강력 고정 */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
         border: 2px solid #000000 !important;
         border-radius: 8px !important;
@@ -29,7 +28,6 @@ st.markdown("""
         border: 2.5px solid #4CAF50 !important;
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
-    
     div[data-testid="stCheckbox"] {
         padding: 5px 10px;
         border-radius: 6px;
@@ -38,7 +36,6 @@ st.markdown("""
     div[data-testid="stCheckbox"]:hover {
         background-color: #f1f8e9;
     }
-
     div[data-testid="stExpander"] {
         border: 1px solid #e0e0e0;
         border-radius: 12px;
@@ -50,11 +47,13 @@ st.markdown("""
 # ==========================================
 # ⚙️ 1. 기본 환경 세팅 및 구글 시트 연동
 # ==========================================
+# 💡 22시 시간대 추가됨
 time_slots_mapping = {
     "18:00": "18:00 ~ 19:00",
     "19:00": "19:00 ~ 20:00",
     "20:00": "20:00 ~ 21:00",
-    "21:00": "21:00 ~ 22:00"
+    "21:00": "21:00 ~ 22:00",
+    "22:00": "22:00 ~ 23:00"
 }
 
 @st.cache_resource(ttl=600)
@@ -101,23 +100,24 @@ if sheet_schedule:
                     val = str(row.get(col_time, "")).strip()
                     if val and "휴" not in val and "block" not in val:
                         digits = re.sub(r'\D', '', val)
-                        extracted_courts = list(digits) 
-                        today_schedule[ui_time] = extracted_courts
+                        today_schedule[ui_time] = list(digits) 
                     else:
                         today_schedule[ui_time] = []
             
-            # --- 2. 월간 달력용 데이터 파싱 ---
+            # --- 2. 월간 달력용 데이터 파싱 (연휴와 스케줄 동시 저장) ---
             is_holiday = False
             has_extra_courts = False
-            day_data = {'18': [], '19': [], '20': [], '21': []}
+            day_data = {'18': [], '19': [], '20': [], '21': [], '22': []} # 22시 추가
             
-            for col_time in ['18:00', '19:00', '20:00', '21:00']:
+            for col_time in ['18:00', '19:00', '20:00', '21:00', '22:00']:
                 val = str(row.get(col_time, "")).strip()
                 hour = col_time.split(':')[0]
                 
+                # 연휴 키워드가 있으면 휴일 체크 (코트 파싱은 멈추지 않음)
                 if "휴" in val or "추석" in val:
                     is_holiday = True
-                elif val and "block" not in val:
+                    
+                if val and "block" not in val:
                     digits = re.sub(r'\D', '', val)
                     courts = list(digits)
                     if '7' in courts: 
@@ -127,10 +127,13 @@ if sheet_schedule:
                         day_data[hour].append('8')
                         has_extra_courts = True
             
-            if is_holiday:
-                monthly_schedule_dict[date_val] = "holiday"
-            elif has_extra_courts:
-                monthly_schedule_dict[date_val] = day_data
+            # 연휴이거나 추가 코트가 있을 때 모두 저장
+            if is_holiday or has_extra_courts:
+                monthly_schedule_dict[date_val] = {
+                    'is_holiday': is_holiday,
+                    'has_courts': has_extra_courts,
+                    'data': day_data
+                }
 
     except Exception as e:
         st.warning("⚠️ 스케줄 데이터를 읽는 중 문제가 발생했습니다.")
@@ -138,7 +141,7 @@ if sheet_schedule:
 available_time_slots = [t for t, courts in today_schedule.items() if len(courts) > 0]
 
 # ==========================================
-# 📝 3. 출석 데이터 읽기/쓰기
+# 📝 3. 출석 데이터 읽기/쓰기 및 취소 로직
 # ==========================================
 def fetch_data():
     if sheet:
@@ -158,6 +161,27 @@ def add_attendance(name, times):
     if sheet:
         sheet.append_rows(rows_to_insert)
 
+# 💡 [핵심] 참석 취소 로직 추가
+def cancel_attendance(name):
+    if not sheet: return False
+    try:
+        all_values = sheet.get_all_values()
+        rows_to_delete = []
+        # 현재 유저의 오늘 기록이 있는 줄(Row) 번호 찾기
+        for i, row in enumerate(all_values):
+            if len(row) >= 3 and row[0] == name and row[2].startswith(today_str):
+                rows_to_delete.append(i + 1) # 구글 시트는 1행부터 시작
+        
+        if rows_to_delete:
+            # 삭제 시 인덱스가 꼬이지 않도록 역순으로 밑에서부터 삭제
+            for r in sorted(rows_to_delete, reverse=True):
+                sheet.delete_row(r)
+            return True
+        return False
+    except Exception as e:
+        st.error(f"취소 중 오류 발생: {e}")
+        return False
+
 # ==========================================
 # 🖥️ 4. UI 렌더링: 두 개의 탭 분리
 # ==========================================
@@ -168,39 +192,60 @@ with tab1:
     st.markdown(f"**📅 오늘 날짜: {today_str}**")
     current_db = fetch_data()
 
-    # --- [회원용] 출석 체크 창 ---
-    with st.expander("🙋‍♂️ [회원용] 3초 출석 체크하기", expanded=True):
+    # --- [회원용] 출석 체크 & 취소 창 ---
+    with st.expander("🙋‍♂️ [회원용] 3초 출석 체크 / 취소", expanded=True):
         if not available_time_slots:
             st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺")
         else:
-            col1, col2 = st.columns([1, 2])
-            with col1:
+            col_input, col_check = st.columns([1, 2])
+            with col_input:
                 user_name = st.text_input("닉네임(이름) 입력", placeholder="예: 김보람")
             
-            with col2:
+            with col_check:
                 st.markdown("참석 시간 선택")
                 selected_times = []
                 for time_slot in available_time_slots:
                     if st.checkbox(time_slot):
                         selected_times.append(time_slot)
-                        
-            if st.button("🚀 출석 등록 완료", use_container_width=True):
-                if not user_name.strip():
-                    st.warning("⚠️ 닉네임을 입력해 주세요!")
-                elif not selected_times:
-                    st.warning("⚠️ 시간을 선택해 주세요!")
-                else:
-                    if not current_db.empty and user_name in current_db['이름'].values:
-                        st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
+            
+            st.write("") # 간격 띄우기
+            col_btn1, col_btn2 = st.columns(2)
+            
+            with col_btn1:
+                if st.button("🚀 출석 등록 완료", use_container_width=True, type="primary"):
+                    if not user_name.strip():
+                        st.warning("⚠️ 닉네임을 입력해 주세요!")
+                    elif not selected_times:
+                        st.warning("⚠️ 시간을 선택해 주세요!")
                     else:
-                        with st.spinner("기록 중입니다..."):
-                            add_attendance(user_name, selected_times)
-                            st.success(f"🎉 {user_name}님 등록 완료!")
-                            st.rerun()
+                        if not current_db.empty and user_name in current_db['이름'].values:
+                            st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
+                        else:
+                            with st.spinner("기록 중입니다..."):
+                                add_attendance(user_name, selected_times)
+                                st.success(f"🎉 {user_name}님 등록 완료!")
+                                st.rerun()
+                                
+            # 💡 [핵심] 취소 버튼 UI 추가
+            with col_btn2:
+                if st.button("🗑️ 참석 취소하기", use_container_width=True):
+                    if not user_name.strip():
+                        st.warning("⚠️ 취소할 닉네임을 입력해 주세요!")
+                    else:
+                        if current_db.empty or user_name not in current_db['이름'].values:
+                            st.warning(f"🚨 '{user_name}'님의 오늘 출석 내역이 없습니다.")
+                        else:
+                            with st.spinner("삭제 중입니다..."):
+                                is_deleted = cancel_attendance(user_name)
+                                if is_deleted:
+                                    st.success(f"🗑️ {user_name}님 취소가 완료되었습니다.")
+                                    st.rerun()
+                                else:
+                                    st.error("취소에 실패했습니다. 다시 시도해주세요.")
 
     st.divider()
 
-    # --- [현황판] 글자 바로 옆에서부터 왼쪽 정렬되도록 수정 ---
+    # --- [현황판] ---
     st.subheader("🚥 실시간 코트 현황판")
     if not available_time_slots:
         st.warning("⚠️ 오늘 예약된 코트가 없습니다.")
@@ -243,7 +288,6 @@ with tab1:
                 )
                 courts_html += court_div
 
-            # 💡 수정포인트: display를 다시 가로 배치(flex-row)로 되돌리고 justify-content를 flex-start로 변경하여 밀착 정렬
             final_html = (
                 f"<div style='background-color: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; display: flex; align-items: center; justify-content: flex-start; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.03); gap: 15px;'>"
                 f"<div style='min-width: max-content;'>"
@@ -265,7 +309,7 @@ with tab1:
             st.table(summary_df)
 
 # ==========================================
-# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (모바일 줄바꿈 방지)
+# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (22시 포함, 연휴/스케줄 동시 표기)
 # ==========================================
 with tab2:
     st.subheader(f"📅 {today_dt.year}년 {today_dt.month}월 추가 코트 현황")
@@ -277,19 +321,17 @@ with tab2:
     <style>
         .cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
         .cal-th { background-color: #f8f9fa; padding: 8px 0; text-align: center; border: 1px solid #ddd; font-size: 13px; color: #333; }
-        .cal-td { border: 1px solid #ddd; height: 110px; vertical-align: top; padding: 4px; background-color: #fff; transition: background 0.2s; }
+        /* 💡 22시가 추가되어 표가 길어졌으므로 높이를 125px로 늘림 */
+        .cal-td { border: 1px solid #ddd; height: 125px; vertical-align: top; padding: 4px; background-color: #fff; transition: background 0.2s; }
         .cal-date { font-weight: bold; font-size: 13px; color: #333; margin-bottom: 2px; display: block; text-align: left; padding-left: 2px;}
         .cal-other-month { color: #ccc; background-color: #fafafa; }
         .cal-today { background-color: #e8f5e9; border: 2px solid #4CAF50; }
         
         .mini-table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 3px; table-layout: fixed;}
-        /* 💡 수정포인트: 모바일에서 세로로 깨지지 않도록 높이(height)를 줄이고 강제 줄바꿈(nowrap) 설정 */
         .mini-th { font-size: 9px; border: 1px solid #ccc; background-color: #f0f0f0; padding: 0; color: #555; white-space: nowrap;}
         .mini-td { font-size: 9px; border: 1px solid #ccc; padding: 0; height: 11px; white-space: nowrap; word-break: keep-all; letter-spacing: -0.5px;}
         .cell-booked { background-color: #4CAF50; }
         .cell-empty { background-color: #fafafa; }
-        
-        .holiday-badge { display: block; background-color: #ffebee; color: #c62828; font-size: 11px; padding: 3px; border-radius: 4px; font-weight: bold; text-align: center; margin-top: 15px;}
     </style>
     <table class="cal-table">
         <tr>
@@ -310,22 +352,27 @@ with tab2:
             if date_str == today_str:
                 td_class += " cal-today"
                 
+            date_display_html = f"<span class='cal-date'>{day_num}"
             content_html = ""
             
             if date_str in monthly_schedule_dict:
-                data = monthly_schedule_dict[date_str]
-                if data == "holiday":
-                    content_html = "<span class='holiday-badge'>🌕 연휴/휴장</span>"
-                else:
-                    # width 비율 조정 및 단일 문자 사용으로 줄바꿈 원천 차단
+                info = monthly_schedule_dict[date_str]
+                
+                # 💡 [핵심] 날짜 바로 옆에 연휴 뱃지 삽입
+                if info['is_holiday']:
+                    date_display_html += "<span style='color: #c62828; font-size: 10px; font-weight: 800; margin-left: 4px;'>[연휴]</span>"
+                
+                # 추가 코트가 있을 때만 미니 표 렌더링 (22시 포함)
+                if info['has_courts']:
                     content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
-                    for hr in ['18', '19', '20', '21']:
-                        cls_7 = "cell-booked" if '7' in data[hr] else "cell-empty"
-                        cls_8 = "cell-booked" if '8' in data[hr] else "cell-empty"
+                    for hr in ['18', '19', '20', '21', '22']: # 22시 추가
+                        cls_7 = "cell-booked" if '7' in info['data'][hr] else "cell-empty"
+                        cls_8 = "cell-booked" if '8' in info['data'][hr] else "cell-empty"
                         content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
                     content_html += "</table>"
-                
-            calendar_html += f"<td class='{td_class}'><span class='cal-date'>{day_num}</span>{content_html}</td>"
+            
+            date_display_html += "</span>"
+            calendar_html += f"<td class='{td_class}'>{date_display_html}{content_html}</td>"
         calendar_html += "</tr>"
         
     calendar_html += "</table>"
