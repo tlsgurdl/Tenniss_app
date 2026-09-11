@@ -280,8 +280,16 @@ with tab1:
                     f"<div style='position: absolute; bottom: 22%; left: 15%; right: 15%; border-top: 1px solid rgba(255,255,255,0.6);'></div>"
                     f"<div style='position: absolute; top: 22%; bottom: 22%; left: 50%; border-left: 1px solid rgba(255,255,255,0.6); transform: translateX(-50%);'></div>"
                     f"<div style='position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 10;'>"
-                    f"<span style='background-color: rgba(255,255,255,0.95); color: #222; padding: 2px 5px; border-radius: 10px; font-weight: 900; font-size: 12px; box-shadow: 1px 2px 4px rgba(0,0,0,0.3); border: 1px solid #ddd;'>{court_num}번</span>"
-                    f"</div></div>"
+                   f"<span style='"
+f"width: 28px; height: 28px; "
+f"background: radial-gradient(circle at 35% 35%, #e8ff4d 0%, #c6e300 70%, #9cb800 100%); "
+f"border-radius: 50%; "
+f"display: flex; align-items: center; justify-content: center; "
+f"color: #1a3300; font-weight: 900; font-size: 11px; "
+f"box-shadow: 0 3px 6px rgba(0,0,0,0.35), inset 1px 1px 2px rgba(255,255,255,0.8); "
+f"border: 1.5px solid rgba(255, 255, 255, 0.7); "
+f"letter-spacing: -0.5px; "
+f"'>{court_num}</span>"</div></div>"
                 )
                 courts_html += court_div
 
