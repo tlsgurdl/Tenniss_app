@@ -200,7 +200,7 @@ with tab1:
                 user_name = st.text_input("닉네임(이름) 입력", placeholder="예: 홍길동")
             
             with col_check:
-                st.markdown("참석 시간 선택")
+                st.markdown("참석 시간 선택(전체 운동시간 복수선택)")
                 selected_times = []
                 for time_slot in available_time_slots:
                     if st.checkbox(time_slot):
