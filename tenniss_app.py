@@ -240,7 +240,7 @@ def cancel_attendance(name):
 # ==========================================
 # 🖥️ 4. UI 렌더링
 # ==========================================
-st.title("🎾 고촌 테니스클럽")
+st.title("🎾 고촌 테니스클럽 출석부")
 tab1, tab2 = st.tabs(["🎾 오늘의 출석부", "📅 월간 예약 달력"])
 
 with tab1:
@@ -256,7 +256,7 @@ with tab1:
                 user_name = st.text_input("닉네임(이름) 입력", placeholder="예: 김보람")
             
             with col_check:
-                st.markdown("참석 시간 선택")
+                st.markdown("참석 시간 선택(운동시간 전체선택)")
                 selected_times = []
                 for time_slot in available_time_slots:
                     if st.checkbox(time_slot):
