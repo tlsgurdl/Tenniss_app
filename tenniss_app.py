@@ -42,12 +42,12 @@ st.markdown("""
         border-radius: 12px;
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
-    /* 💡 이름 버튼 글자 짤림 완벽 방지 */
+    /* 💡 이름 버튼 글자 짤림 방지 및 컴팩트화 */
     div[data-testid="stVerticalBlock"] button {
-        padding: 4px 5px !important;
+        padding: 4px 2px !important;
     }
     div[data-testid="stVerticalBlock"] button p {
-        font-size: 14px !important;
+        font-size: 13px !important;
         white-space: nowrap !important;
         text-overflow: clip !important;
         overflow: visible !important;
@@ -94,6 +94,14 @@ def get_weekend_schedule(d_obj):
         schedule[str(h)] = courts
     return schedule
 
+# 💡 텍스트 내 휴관/대회 키워드를 찾아주는 함수
+def get_closure_text(val):
+    if "대회" in val: return "🏆 대회"
+    if "우천" in val: return "🌧️ 우천취소"
+    if "공사" in val: return "🚧 공사중"
+    if any(k in val for k in ["휴", "취소", "block"]): return "🚫 휴관"
+    return None
+
 @st.cache_resource(ttl=600)
 def init_connection():
     try:
@@ -129,7 +137,6 @@ monthly_schedule_dict = {}
 cal_generator = calendar.Calendar(firstweekday=0)
 month_dates_list = cal_generator.monthdatescalendar(today_dt.year, today_dt.month)
 
-# 2-1. 달력 기본값 채우기 (공휴일 & 주말 자동화)
 for week in month_dates_list:
     for day in week:
         if day.month == today_dt.month:
@@ -143,7 +150,8 @@ for week in month_dates_list:
                 'is_sun': is_sun,
                 'show_fixed': (is_weekend or is_hol),
                 'show_custom': False,
-                'custom_data': None
+                'custom_data': None,
+                'closure': None
             }
 
 fixed_today = get_weekend_schedule(today_dt)
@@ -154,7 +162,6 @@ for h in range(13, 23):
     else:
         today_schedule[ui_time] = []
 
-# 2-2. 시트 데이터로 달력/현황판 덮어쓰기
 if sheet_schedule:
     try:
         data = sheet_schedule.get_all_records()
@@ -162,15 +169,23 @@ if sheet_schedule:
             date_val = str(row.get('날짜', '')).strip()
             if not date_val: continue
             
-            is_holiday_in_sheet = False
+            closure_text = None
             has_extra_courts = False
             day_data = {str(h): [] for h in range(18, 23)}
             
-            for h in range(18, 23):
+            # 1. 시트에 대회/휴관 등 키워드가 있는지 확인
+            for h in range(13, 23):
                 val = str(row.get(f"{h}:00", "")).strip()
-                if "휴" in val or "추석" in val:
-                    is_holiday_in_sheet = True
-                elif val and "block" not in val:
+                if val:
+                    c_txt = get_closure_text(val)
+                    if c_txt:
+                        closure_text = c_txt
+                        break # 하나라도 발견되면 달력에는 휴관 뱃지 적용
+            
+            # 2. 휴관이 아니면 커스텀 코트(7, 8번) 파싱
+            if not closure_text:
+                for h in range(18, 23):
+                    val = str(row.get(f"{h}:00", "")).strip()
                     courts = list(re.sub(r'\D', '', val))
                     if '7' in courts: 
                         day_data[str(h)].append('7')
@@ -181,20 +196,18 @@ if sheet_schedule:
                         
             if date_val not in monthly_schedule_dict:
                 monthly_schedule_dict[date_val] = {
-                    'is_holiday': False, 'is_sun': False, 'show_fixed': False, 'show_custom': False, 'custom_data': None
+                    'is_holiday': False, 'is_sun': False, 'show_fixed': False, 'show_custom': False, 'custom_data': None, 'closure': None
                 }
                 
-            # 💡 연휴 체크 반영
-            if is_holiday_in_sheet:
-                monthly_schedule_dict[date_val]['is_holiday'] = True
-                
-            # 💡 커스텀 예약 내역이 있으면 반영 (우선순위 높음)
-            if has_extra_courts:
+            if closure_text:
+                monthly_schedule_dict[date_val]['closure'] = closure_text
+                monthly_schedule_dict[date_val]['show_fixed'] = False 
+                monthly_schedule_dict[date_val]['show_custom'] = False
+            elif has_extra_courts:
                 monthly_schedule_dict[date_val]['show_custom'] = True
                 monthly_schedule_dict[date_val]['custom_data'] = day_data
                 monthly_schedule_dict[date_val]['show_fixed'] = False 
 
-            # 오늘 현황판 덮어쓰기
             if date_val == today_str:
                 for h in range(13, 23):
                     col_name = f"{h}:00"
@@ -202,8 +215,8 @@ if sheet_schedule:
                         val = str(row.get(col_name, "")).strip()
                         ui_time = time_slots_mapping[col_name]
                         if val:
-                            if "휴" in val or "block" in val:
-                                today_schedule[ui_time] = []
+                            if get_closure_text(val):
+                                today_schedule[ui_time] = [] # 휴관인 시간대는 삭제
                             else:
                                 today_schedule[ui_time] = list(re.sub(r'\D', '', val))
 
@@ -285,25 +298,30 @@ with tab1:
         if not available_time_slots:
             st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺")
         else:
-            col_input, col_check = st.columns([1, 2])
-            with col_input:
-                user_name = st.text_input("닉네임(이름) 입력", key="input_name", placeholder="예: 김보람")
-                
-                members = get_all_members()
-                if members:
-                    st.markdown("<div style='font-size:12px; color:#555; margin-bottom: 5px;'>👇 기존 회원 (클릭 시 자동 입력)</div>", unsafe_allow_html=True)
-                    # 💡 버튼 크기 확보를 위해 4칸에서 3칸으로 수정
-                    btn_cols = st.columns(3)
-                    for idx, member in enumerate(members):
-                        with btn_cols[idx % 3]:
-                            if st.button(member, key=f"btn_{idx}", use_container_width=True):
-                                st.session_state.input_name = member
-                                st.rerun()
+            # 💡 UI 상하 분리: 1. 상단 넓게 이름 입력 & 버튼 
+            st.markdown("**1️⃣ 이름 입력 (클릭 또는 직접 입력)**")
+            user_name = st.text_input("닉네임(이름) 입력", key="input_name", placeholder="예: 김보람", label_visibility="collapsed")
             
-            with col_check:
-                st.markdown("참석 시간 선택 (운동시간 전체 선택)")
-                selected_times = []
-                for time_slot in available_time_slots:
+            members = get_all_members()
+            if members:
+                # 5칸(PC) / 모바일 자동 맞춤형 그리드
+                btn_cols = st.columns(5)
+                for idx, member in enumerate(members):
+                    with btn_cols[idx % 5]:
+                        if st.button(member, key=f"btn_{idx}", use_container_width=True):
+                            st.session_state.input_name = member
+                            st.rerun()
+            
+            st.markdown("---") # 구분선 추가
+            
+            # 💡 UI 상하 분리: 2. 하단에 시간 체크박스
+            st.markdown("**2️⃣ 참석 시간 선택** (운동시간 전체 선택)")
+            selected_times = []
+            
+            # 2칸으로 깔끔하게 배치
+            chk_cols = st.columns(2)
+            for idx, time_slot in enumerate(available_time_slots):
+                with chk_cols[idx % 2]:
                     if st.checkbox(time_slot):
                         selected_times.append(time_slot)
             
@@ -429,6 +447,9 @@ with tab2:
         .mini-td { font-size: 9px; border: 1px solid #ccc; padding: 0; height: 11px; white-space: nowrap; word-break: keep-all; letter-spacing: -0.5px;}
         .cell-booked { background-color: #4CAF50; }
         .cell-empty { background-color: #fafafa; }
+        
+        /* 💡 휴관 / 대회 뱃지 스타일 추가 */
+        .closure-badge { display: block; background-color: #ffebee; color: #c62828; font-size: 11px; padding: 5px 3px; border-radius: 4px; font-weight: bold; text-align: center; margin-top: 20px;}
     </style>
     <table class="cal-table">
         <tr>
@@ -455,14 +476,17 @@ with tab2:
             if date_str in monthly_schedule_dict:
                 info = monthly_schedule_dict[date_str]
                 
-                # 💡 1. [연휴] 뱃지는 조건 확인 후 날짜 바로 옆에 안착!
+                # 달력 날짜 옆에 빨간 글씨로 [연휴] 표시 (휴관 여부와 무관하게 공휴일이면 표시)
                 if info['is_holiday']:
                     date_display_html += "<span style='color: #c62828; font-size: 10px; font-weight: 800; margin-left: 4px;'>[연휴]</span>"
+                date_display_html += "</span>" 
                 
-                date_display_html += "</span>" # 날짜 Span 종료
+                # 💡 1순위: 대회, 휴관, 우천 등 강제 휴장 시
+                if info['closure']:
+                    content_html = f"<span class='closure-badge'>{info['closure']}</span>"
                 
-                # 💡 2. 커스텀 예약(평일 추가 코트 또는 연휴인데 별도 예약) 우선 렌더링
-                if info['show_custom']: 
+                # 💡 2순위: 커스텀 예약 렌더링
+                elif info['show_custom']: 
                     content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
                     for hr in ['18', '19', '20', '21', '22']: 
                         cls_7 = "cell-booked" if '7' in info['custom_data'][hr] else "cell-empty"
@@ -470,7 +494,7 @@ with tab2:
                         content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
                     content_html += "</table>"
                     
-                # 💡 3. 위 조건에 해당하지 않으면서 주말/공휴일 고정 대관일 경우 요약 뱃지 렌더링
+                # 💡 3순위: 위 조건에 해당하지 않으면서 주말/공휴일 고정 대관일 경우 요약 뱃지 렌더링
                 elif info['show_fixed']:
                     badge_label = "[공휴일 고정대관]" if info['is_holiday'] else ("[일요일 고정대관]" if info['is_sun'] else "[토요일 고정대관]")
                     badge_color = "#ffebee" if (info['is_holiday'] or info['is_sun']) else "#e3f2fd"
@@ -495,4 +519,4 @@ with tab2:
     calendar_html += "</table>"
     
     st.markdown(calendar_html, unsafe_allow_html=True)
-    st.caption("💡 주말 및 공휴일은 시스템에서 자동으로 고정 대관 스케줄을 적용하여 달력에 요약 표시합니다.")
+    st.caption("💡 주말/공휴일은 고정 스케줄이 반영되며, 시트에 '대회', '휴관' 등의 키워드가 있으면 자동으로 휴장 처리됩니다.")
