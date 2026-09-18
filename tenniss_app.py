@@ -42,15 +42,44 @@ st.markdown("""
         border-radius: 12px;
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
-    /* 💡 이름 버튼 글자 짤림 방지 및 컴팩트화 */
-    div[data-testid="stVerticalBlock"] button {
-        padding: 4px 2px !important;
+    
+    /* 💡 [핵심] 10칸짜리 컬럼 블록(태그 버튼들)을 스마트하게 줄바꿈 배열 */
+    div[data-testid="stHorizontalBlock"]:has(> div:nth-child(10)) {
+        flex-wrap: wrap !important;
+        gap: 5px 0px !important;
     }
-    div[data-testid="stVerticalBlock"] button p {
+    /* 데스크톱: 한 줄에 10개씩 */
+    @media (min-width: 768px) {
+        div[data-testid="stHorizontalBlock"]:has(> div:nth-child(10)) > div[data-testid="column"] {
+            min-width: calc(10% - 0.5rem) !important;
+            flex: 1 1 calc(10% - 0.5rem) !important;
+        }
+    }
+    /* 모바일: 한 줄에 5개씩 꽉 차게 */
+    @media (max-width: 767px) {
+        div[data-testid="stHorizontalBlock"]:has(> div:nth-child(10)) > div[data-testid="column"] {
+            min-width: calc(20% - 0.5rem) !important;
+            flex: 1 1 calc(20% - 0.5rem) !important;
+        }
+    }
+    
+    /* 태그 버튼을 둥글고 예쁜 알약(Pill) 형태로 디자인 */
+    div[data-testid="stHorizontalBlock"]:has(> div:nth-child(10)) button {
+        padding: 4px 2px !important;
+        border: 1px solid #ddd !important;
+        background-color: #f8f9fa !important;
+        border-radius: 20px !important;
+        box-shadow: 1px 1px 3px rgba(0,0,0,0.05) !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div:nth-child(10)) button:hover {
+        border-color: #4CAF50 !important;
+        background-color: #e8f5e9 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div:nth-child(10)) button p {
         font-size: 13px !important;
         white-space: nowrap !important;
-        text-overflow: clip !important;
-        overflow: visible !important;
+        margin: 0 !important;
+        color: #333 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -94,7 +123,6 @@ def get_weekend_schedule(d_obj):
         schedule[str(h)] = courts
     return schedule
 
-# 💡 텍스트 내 휴관/대회 키워드를 찾아주는 함수
 def get_closure_text(val):
     if "대회" in val: return "🏆 대회"
     if "우천" in val: return "🌧️ 우천취소"
@@ -173,16 +201,14 @@ if sheet_schedule:
             has_extra_courts = False
             day_data = {str(h): [] for h in range(18, 23)}
             
-            # 1. 시트에 대회/휴관 등 키워드가 있는지 확인
             for h in range(13, 23):
                 val = str(row.get(f"{h}:00", "")).strip()
                 if val:
                     c_txt = get_closure_text(val)
                     if c_txt:
                         closure_text = c_txt
-                        break # 하나라도 발견되면 달력에는 휴관 뱃지 적용
+                        break
             
-            # 2. 휴관이 아니면 커스텀 코트(7, 8번) 파싱
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
@@ -216,7 +242,7 @@ if sheet_schedule:
                         ui_time = time_slots_mapping[col_name]
                         if val:
                             if get_closure_text(val):
-                                today_schedule[ui_time] = [] # 휴관인 시간대는 삭제
+                                today_schedule[ui_time] = [] 
                             else:
                                 today_schedule[ui_time] = list(re.sub(r'\D', '', val))
 
@@ -226,10 +252,22 @@ if sheet_schedule:
 available_time_slots = [t for t, courts in today_schedule.items() if len(courts) > 0]
 
 # ==========================================
-# 📝 3. 데이터 읽기/쓰기 및 닉네임 버튼 로직
+# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어
 # ==========================================
+# 💡 에러 방지를 위한 Session State 완벽 초기화
 if "input_name" not in st.session_state:
     st.session_state.input_name = ""
+if "clear_input" not in st.session_state:
+    st.session_state.clear_input = False
+
+# 성공적인 등록/취소 후 화면이 새로고침될 때 텍스트를 안전하게 지워줌
+if st.session_state.clear_input:
+    st.session_state.input_name = ""
+    st.session_state.clear_input = False
+
+# 💡 [핵심] 버튼을 누를 때마다 안전하게 이름을 바꿔주는 콜백 함수
+def set_name(name):
+    st.session_state.input_name = name
 
 def fetch_data():
     if sheet:
@@ -298,27 +336,27 @@ with tab1:
         if not available_time_slots:
             st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺")
         else:
-            # 💡 UI 상하 분리: 1. 상단 넓게 이름 입력 & 버튼 
-            st.markdown("**1️⃣ 이름 입력 (클릭 또는 직접 입력)**")
+            # 💡 [구조 대폭 변경] 1. 상단에 닉네임 입력 (전체 너비 사용)
+            st.markdown("**1️⃣ 이름 입력** (직접 입력하거나 아래 버튼을 누르세요)")
             user_name = st.text_input("닉네임(이름) 입력", key="input_name", placeholder="예: 김보람", label_visibility="collapsed")
             
+            # 💡 [구조 대폭 변경] 2. 회원 버튼을 바로 아래 배치 (가로 전체 활용)
             members = get_all_members()
             if members:
-                # 5칸(PC) / 모바일 자동 맞춤형 그리드
-                btn_cols = st.columns(5)
+                # 10칸짜리 그리드 생성 (CSS에 의해 데스크톱 10개, 모바일 5개씩 예쁘게 자동 정렬됨)
+                btn_cols = st.columns(10)
                 for idx, member in enumerate(members):
-                    with btn_cols[idx % 5]:
-                        if st.button(member, key=f"btn_{idx}", use_container_width=True):
-                            st.session_state.input_name = member
-                            st.rerun()
+                    with btn_cols[idx % 10]:
+                        # on_click 콜백을 통해 안전하게 값을 전달하여 에러 원천 차단!
+                        st.button(member, key=f"btn_{idx}", on_click=set_name, args=(member,), use_container_width=True)
             
-            st.markdown("---") # 구분선 추가
+            st.markdown("---")
             
-            # 💡 UI 상하 분리: 2. 하단에 시간 체크박스
+            # 💡 [구조 대폭 변경] 3. 참석 시간을 하단으로 이동
             st.markdown("**2️⃣ 참석 시간 선택** (운동시간 전체 선택)")
             selected_times = []
             
-            # 2칸으로 깔끔하게 배치
+            # 시간을 2열로 깔끔하게 배치하여 세로 길이를 줄임
             chk_cols = st.columns(2)
             for idx, time_slot in enumerate(available_time_slots):
                 with chk_cols[idx % 2]:
@@ -341,7 +379,7 @@ with tab1:
                             with st.spinner("기록 중입니다..."):
                                 add_attendance(user_name, selected_times)
                                 get_all_members.clear() 
-                                st.session_state.input_name = "" 
+                                st.session_state.clear_input = True # 안전한 값 비우기 예약
                                 st.success(f"🎉 {user_name}님 등록 완료!")
                                 st.rerun()
                                 
@@ -356,7 +394,7 @@ with tab1:
                             with st.spinner("삭제 중입니다..."):
                                 is_deleted = cancel_attendance(user_name)
                                 if is_deleted:
-                                    st.session_state.input_name = "" 
+                                    st.session_state.clear_input = True # 안전한 값 비우기 예약
                                     st.success(f"🗑️ {user_name}님 취소가 완료되었습니다.")
                                     st.rerun()
                                 else:
@@ -448,7 +486,6 @@ with tab2:
         .cell-booked { background-color: #4CAF50; }
         .cell-empty { background-color: #fafafa; }
         
-        /* 💡 휴관 / 대회 뱃지 스타일 추가 */
         .closure-badge { display: block; background-color: #ffebee; color: #c62828; font-size: 11px; padding: 5px 3px; border-radius: 4px; font-weight: bold; text-align: center; margin-top: 20px;}
     </style>
     <table class="cal-table">
@@ -476,16 +513,13 @@ with tab2:
             if date_str in monthly_schedule_dict:
                 info = monthly_schedule_dict[date_str]
                 
-                # 달력 날짜 옆에 빨간 글씨로 [연휴] 표시 (휴관 여부와 무관하게 공휴일이면 표시)
                 if info['is_holiday']:
                     date_display_html += "<span style='color: #c62828; font-size: 10px; font-weight: 800; margin-left: 4px;'>[연휴]</span>"
                 date_display_html += "</span>" 
                 
-                # 💡 1순위: 대회, 휴관, 우천 등 강제 휴장 시
                 if info['closure']:
                     content_html = f"<span class='closure-badge'>{info['closure']}</span>"
                 
-                # 💡 2순위: 커스텀 예약 렌더링
                 elif info['show_custom']: 
                     content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
                     for hr in ['18', '19', '20', '21', '22']: 
@@ -494,7 +528,6 @@ with tab2:
                         content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
                     content_html += "</table>"
                     
-                # 💡 3순위: 위 조건에 해당하지 않으면서 주말/공휴일 고정 대관일 경우 요약 뱃지 렌더링
                 elif info['show_fixed']:
                     badge_label = "[공휴일 고정대관]" if info['is_holiday'] else ("[일요일 고정대관]" if info['is_sun'] else "[토요일 고정대관]")
                     badge_color = "#ffebee" if (info['is_holiday'] or info['is_sun']) else "#e3f2fd"
