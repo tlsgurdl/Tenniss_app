@@ -292,7 +292,7 @@ def cancel_attendance(name):
 # ==========================================
 # 🖥️ 4. UI 렌더링
 # ==========================================
-st.title("🎾 고촌 테니스클럽 출석부")
+st.title("🎾 고촌클럽 출석부")
 tab1, tab2 = st.tabs(["🎾 오늘의 출석부", "📅 월간 예약 달력"])
 
 with tab1:
@@ -315,7 +315,7 @@ with tab1:
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
                     pill_val = sel[0] if sel else None
 
-            user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 김보람", label_visibility="collapsed")
+            user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
             
