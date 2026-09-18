@@ -30,6 +30,7 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
+    /* 체크박스 한줄 배치 시 텍스트 짤림 방지 */
     div[data-testid="stCheckbox"] {
         padding: 5px 2px;
         border-radius: 6px;
@@ -43,61 +44,61 @@ st.markdown("""
         font-size: 13.5px !important;
     }
     
-    /* ================================================== */
-    /* 💡 [핵심 해결] 모바일 강제 1열화 100% 무력화 매직 CSS */
-    /* ================================================== */
-    /* 마커(#name-tags-marker)가 포함된 구역 전체를 가로 정렬 블록으로 강제 변환 */
-    div[data-testid="stVerticalBlock"]:has(#name-tags-marker) {
+    /* ==========================================================
+       💡 [핀셋 타겟팅] 이름 태그 영역만 안전하게 가로 정렬!
+       체크박스가 없는 10칸짜리 컬럼만 콕 집어서 레이아웃 파괴 방지
+       ========================================================== */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(10):last-child):not(:has(input[type="checkbox"])) {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: wrap !important;
-        gap: 6px 4px !important;
+        gap: 6px 4px !important; /* 버튼 사이 여백 */
     }
     
-    /* 숨겨둔 마커 자체는 화면에서 안 보이게 처리 */
-    div[data-testid="stVerticalBlock"]:has(#name-tags-marker) > div:has(#name-tags-marker) {
-        display: none !important;
-    }
-    
-    /* 모바일 기본설정 (화면 폭 767px 이하) -> 무조건 5개씩 배열 */
-    div[data-testid="stVerticalBlock"]:has(#name-tags-marker) > div[data-testid="stElementContainer"] {
-        width: calc(20% - 4px) !important;
-        min-width: calc(20% - 4px) !important;
-        max-width: calc(20% - 4px) !important;
-        flex: 0 0 calc(20% - 4px) !important;
-        display: block !important;
-    }
-    
-    /* PC 환경 (화면 폭 768px 이상) -> 10개씩 배열 */
+    /* 1. PC 모드: 한 줄에 10개씩 배치 (이.. 김.. 글자 짤림 방지) */
     @media (min-width: 768px) {
-        div[data-testid="stVerticalBlock"]:has(#name-tags-marker) > div[data-testid="stElementContainer"] {
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(10):last-child):not(:has(input[type="checkbox"])) > div[data-testid="column"] {
             width: calc(10% - 4px) !important;
             min-width: calc(10% - 4px) !important;
             max-width: calc(10% - 4px) !important;
-            flex: 0 0 calc(10% - 4px) !important;
+            flex: 1 1 calc(10% - 4px) !important;
         }
     }
     
-    /* 이름 버튼(태그) 디자인 - 살짝 둥근 사각형 느낌 */
-    div[data-testid="stVerticalBlock"]:has(#name-tags-marker) button {
-        width: 100% !important;
-        padding: 5px 0px !important;
+    /* 2. 모바일 세로 모드: Streamlit 강제 1열화 방어벽 뚫고 무조건 5개씩 배치! */
+    @media (max-width: 767px) {
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(10):last-child):not(:has(input[type="checkbox"])) {
+            flex-direction: row !important; /* 강제 세로화 무력화 */
+        }
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(10):last-child):not(:has(input[type="checkbox"])) > div[data-testid="column"] {
+            width: calc(20% - 4px) !important;
+            min-width: calc(20% - 4px) !important;
+            max-width: calc(20% - 4px) !important;
+            flex: 1 1 calc(20% - 4px) !important;
+            display: block !important;
+        }
+    }
+    
+    /* 💡 이름 태그 디자인 (덜 둥근 사각형태) */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(10):last-child):not(:has(input[type="checkbox"])) button {
+        padding: 4px 0px !important;
         border: 1px solid #ccc !important;
         background-color: #f8f9fa !important;
-        border-radius: 4px !important; /* 덜 둥근 사각 느낌 */
-        box-shadow: 1px 1px 2px rgba(0,0,0,0.05) !important;
+        border-radius: 4px !important; /* 살짝만 둥근 사각 느낌 */
+        box-shadow: 1px 1px 3px rgba(0,0,0,0.05) !important;
     }
-    div[data-testid="stVerticalBlock"]:has(#name-tags-marker) button:hover {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(10):last-child):not(:has(input[type="checkbox"])) button:hover {
         border-color: #4CAF50 !important;
         background-color: #e8f5e9 !important;
     }
-    div[data-testid="stVerticalBlock"]:has(#name-tags-marker) button p {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(10):last-child):not(:has(input[type="checkbox"])) button p {
         font-size: 13.5px !important;
         white-space: nowrap !important;
+        text-overflow: clip !important;
+        overflow: visible !important;
         margin: 0 !important;
         color: #333 !important;
     }
-    /* ================================================== */
     
     div[data-testid="stExpander"] {
         border: 1px solid #e0e0e0;
@@ -150,6 +151,7 @@ def get_closure_text(val):
     if "대회" in val: return "🏆 대회"
     if "우천" in val: return "🌧️ 우천취소"
     if "공사" in val: return "🚧 공사중"
+    # "추석", "연휴"는 제외하고 진짜 휴관 키워드만 잡습니다
     if "휴관" in val or "취소" in val or "block" in val: return "🚫 휴관"
     return None
 
@@ -275,7 +277,7 @@ if sheet_schedule:
 available_time_slots = [t for t, courts in today_schedule.items() if len(courts) > 0]
 
 # ==========================================
-# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어
+# 📝 3. 데이터 읽기/쓰기 및 세션 상태
 # ==========================================
 if "input_name" not in st.session_state:
     st.session_state.input_name = ""
@@ -359,17 +361,13 @@ with tab1:
             st.markdown("**1️⃣ 이름 입력** (아래 태그를 누르거나 직접 입력하세요)")
             user_name = st.text_input("닉네임(이름) 입력", key="input_name", placeholder="예: 김보람", label_visibility="collapsed")
             
-            # ===============================================
-            # 💡 [마법 발동 구간] columns 대신 st.container 사용!
-            # ===============================================
+            # 💡 [핵심 교체구간] 10칸 짜리 columns로 변경하여 CSS와 완벽 연동
             members = get_all_members()
             if members:
-                with st.container():
-                    # 이 숨겨진 마커(#name-tags-marker)가 위의 특수 CSS와 결합하여 Streamlit의 강제 1열화 방어벽을 깨부숩니다.
-                    st.markdown('<span id="name-tags-marker"></span>', unsafe_allow_html=True)
-                    for idx, member in enumerate(members):
-                        st.button(member, key=f"btn_{idx}", on_click=set_name, args=(member,))
-            # ===============================================
+                btn_cols = st.columns(10)
+                for idx, member in enumerate(members):
+                    with btn_cols[idx % 10]:
+                        st.button(member, key=f"btn_{idx}", on_click=set_name, args=(member,), use_container_width=True)
             
             st.markdown("---")
             st.markdown("**2️⃣ 참석 시간 선택** (우측 등록/취소 클릭)")
