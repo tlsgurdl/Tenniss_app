@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-# 💡 KST(한국시간) 고정을 위해 timezone, timedelta 추가
 from datetime import datetime, timezone, timedelta 
 import json
 import gspread
@@ -43,21 +42,24 @@ st.markdown("""
         border-radius: 12px;
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
-    /* 새로 추가되는 이름 버튼들의 간격 미세 조정 */
-    div[data-testid="stVerticalBlock"] div[data-testid="column"] button {
-        padding: 4px 8px !important;
-        min-height: 0px !important;
-        font-size: 13px !important;
+    /* 💡 이름 버튼 글자 짤림 완벽 방지 */
+    div[data-testid="stVerticalBlock"] button {
+        padding: 4px 5px !important;
+    }
+    div[data-testid="stVerticalBlock"] button p {
+        font-size: 14px !important;
+        white-space: nowrap !important;
+        text-overflow: clip !important;
+        overflow: visible !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# ⚙️ 1. 기본 환경 세팅 (공휴일 & 13시~22시 확장)
+# ⚙️ 1. 기본 환경 세팅
 # ==========================================
 kr_holidays = holidays.KR()
 
-# 💡 13시부터 22시(심야반)까지 시간대 자동 생성
 time_slots_mapping = {}
 for h in range(13, 23):
     label = f"{h}:00 ~ {h+1}:00"
@@ -65,7 +67,6 @@ for h in range(13, 23):
         label += " (심야반)"
     time_slots_mapping[f"{h}:00"] = label
 
-# 💡 주말/공휴일 고정 스케줄 반환 함수
 def get_weekend_schedule(d_obj):
     is_weekend = d_obj.weekday() >= 5
     is_hol = d_obj in kr_holidays
@@ -116,10 +117,10 @@ def init_connection():
 sheet, sheet_schedule = init_connection()
 
 # ==========================================
-# 📅 2. 스케줄 및 시간 데이터 파싱 (한국 시간 고정 💡)
+# 📅 2. 스케줄 및 시간 데이터 파싱 (한국 시간 고정)
 # ==========================================
-KST = timezone(timedelta(hours=9)) # 한국 시간대 설정
-today_dt = datetime.now(KST)       # 서버 시간이 아닌 무조건 한국 시간 기준으로!
+KST = timezone(timedelta(hours=9))
+today_dt = datetime.now(KST)
 today_str = today_dt.strftime('%Y-%m-%d')
 
 today_schedule = {} 
@@ -128,17 +129,22 @@ monthly_schedule_dict = {}
 cal_generator = calendar.Calendar(firstweekday=0)
 month_dates_list = cal_generator.monthdatescalendar(today_dt.year, today_dt.month)
 
+# 2-1. 달력 기본값 채우기 (공휴일 & 주말 자동화)
 for week in month_dates_list:
     for day in week:
         if day.month == today_dt.month:
             date_s = day.strftime('%Y-%m-%d')
-            fixed_sch = get_weekend_schedule(day)
-            if fixed_sch:
-                monthly_schedule_dict[date_s] = {
-                    'type': 'fixed',
-                    'is_holiday': (day in kr_holidays),
-                    'is_sun': (day.weekday() == 6)
-                }
+            is_hol = day in kr_holidays
+            is_sun = (day.weekday() == 6)
+            is_weekend = (day.weekday() >= 5)
+            
+            monthly_schedule_dict[date_s] = {
+                'is_holiday': is_hol,
+                'is_sun': is_sun,
+                'show_fixed': (is_weekend or is_hol),
+                'show_custom': False,
+                'custom_data': None
+            }
 
 fixed_today = get_weekend_schedule(today_dt)
 for h in range(13, 23):
@@ -148,6 +154,7 @@ for h in range(13, 23):
     else:
         today_schedule[ui_time] = []
 
+# 2-2. 시트 데이터로 달력/현황판 덮어쓰기
 if sheet_schedule:
     try:
         data = sheet_schedule.get_all_records()
@@ -172,12 +179,22 @@ if sheet_schedule:
                         day_data[str(h)].append('8')
                         has_extra_courts = True
                         
+            if date_val not in monthly_schedule_dict:
+                monthly_schedule_dict[date_val] = {
+                    'is_holiday': False, 'is_sun': False, 'show_fixed': False, 'show_custom': False, 'custom_data': None
+                }
+                
+            # 💡 연휴 체크 반영
             if is_holiday_in_sheet:
-                monthly_schedule_dict[date_val] = {'type': 'holiday'}
-            elif has_extra_courts:
-                if date_val not in monthly_schedule_dict or monthly_schedule_dict[date_val]['type'] != 'fixed':
-                    monthly_schedule_dict[date_val] = {'type': 'custom', 'data': day_data}
+                monthly_schedule_dict[date_val]['is_holiday'] = True
+                
+            # 💡 커스텀 예약 내역이 있으면 반영 (우선순위 높음)
+            if has_extra_courts:
+                monthly_schedule_dict[date_val]['show_custom'] = True
+                monthly_schedule_dict[date_val]['custom_data'] = day_data
+                monthly_schedule_dict[date_val]['show_fixed'] = False 
 
+            # 오늘 현황판 덮어쓰기
             if date_val == today_str:
                 for h in range(13, 23):
                     col_name = f"{h}:00"
@@ -198,7 +215,6 @@ available_time_slots = [t for t, courts in today_schedule.items() if len(courts)
 # ==========================================
 # 📝 3. 데이터 읽기/쓰기 및 닉네임 버튼 로직
 # ==========================================
-# 💡 상태 유지를 위한 Session State (버튼 클릭 시 입력창에 반영)
 if "input_name" not in st.session_state:
     st.session_state.input_name = ""
 
@@ -214,7 +230,6 @@ def fetch_data():
             pass
     return pd.DataFrame(columns=["이름", "참석시간", "등록일시"])
 
-# 💡 [핵심] 시트의 전체 기록에서 이름만 쏙 뽑아 가나다순으로 반환
 @st.cache_data(ttl=600)
 def get_all_members():
     if not sheet: return []
@@ -225,14 +240,12 @@ def get_all_members():
         if "이름" not in header: return []
         name_idx = header.index("이름")
         
-        # 중복 제거 후 가나다순 정렬
         names = [row[name_idx].strip() for row in all_values[1:] if len(row) > name_idx and row[name_idx].strip()]
         return sorted(list(set(names)))
     except:
         return []
 
 def add_attendance(name, times):
-    # 등록되는 기록도 한국 시간 기준 적용
     now = datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
     rows_to_insert = [[name, t, now] for t in times]
     if sheet:
@@ -274,18 +287,16 @@ with tab1:
         else:
             col_input, col_check = st.columns([1, 2])
             with col_input:
-                # 💡 Session State 연동하여 이름 입력창 렌더링
                 user_name = st.text_input("닉네임(이름) 입력", key="input_name", placeholder="예: 김보람")
                 
-                # 💡 [핵심] 기존 닉네임들을 4열 버튼 그리드로 뿌려주기
                 members = get_all_members()
                 if members:
                     st.markdown("<div style='font-size:12px; color:#555; margin-bottom: 5px;'>👇 기존 회원 (클릭 시 자동 입력)</div>", unsafe_allow_html=True)
-                    btn_cols = st.columns(4)
+                    # 💡 버튼 크기 확보를 위해 4칸에서 3칸으로 수정
+                    btn_cols = st.columns(3)
                     for idx, member in enumerate(members):
-                        with btn_cols[idx % 4]:
+                        with btn_cols[idx % 3]:
                             if st.button(member, key=f"btn_{idx}", use_container_width=True):
-                                # 버튼 누르면 세션 스테이트(입력창 값) 변경 후 새로고침!
                                 st.session_state.input_name = member
                                 st.rerun()
             
@@ -311,8 +322,8 @@ with tab1:
                         else:
                             with st.spinner("기록 중입니다..."):
                                 add_attendance(user_name, selected_times)
-                                get_all_members.clear() # 새 멤버 캐시 즉시 리셋
-                                st.session_state.input_name = "" # 기록 성공 시 텍스트 지우기
+                                get_all_members.clear() 
+                                st.session_state.input_name = "" 
                                 st.success(f"🎉 {user_name}님 등록 완료!")
                                 st.rerun()
                                 
@@ -327,7 +338,7 @@ with tab1:
                             with st.spinner("삭제 중입니다..."):
                                 is_deleted = cancel_attendance(user_name)
                                 if is_deleted:
-                                    st.session_state.input_name = "" # 삭제 성공 시 텍스트 지우기
+                                    st.session_state.input_name = "" 
                                     st.success(f"🗑️ {user_name}님 취소가 완료되었습니다.")
                                     st.rerun()
                                 else:
@@ -418,7 +429,6 @@ with tab2:
         .mini-td { font-size: 9px; border: 1px solid #ccc; padding: 0; height: 11px; white-space: nowrap; word-break: keep-all; letter-spacing: -0.5px;}
         .cell-booked { background-color: #4CAF50; }
         .cell-empty { background-color: #fafafa; }
-        .holiday-badge { display: block; background-color: #ffebee; color: #c62828; font-size: 11px; padding: 3px; border-radius: 4px; font-weight: bold; text-align: center; margin-top: 15px;}
     </style>
     <table class="cal-table">
         <tr>
@@ -439,16 +449,29 @@ with tab2:
             if date_str == today_str:
                 td_class += " cal-today"
                 
-            date_display_html = f"<span class='cal-date'>{day_num}</span>"
+            date_display_html = f"<span class='cal-date'>{day_num}"
             content_html = ""
             
             if date_str in monthly_schedule_dict:
                 info = monthly_schedule_dict[date_str]
                 
-                if info['type'] == 'holiday':
-                    content_html = "<span class='holiday-badge'>🌕 연휴/휴장</span>"
+                # 💡 1. [연휴] 뱃지는 조건 확인 후 날짜 바로 옆에 안착!
+                if info['is_holiday']:
+                    date_display_html += "<span style='color: #c62828; font-size: 10px; font-weight: 800; margin-left: 4px;'>[연휴]</span>"
                 
-                elif info['type'] == 'fixed': 
+                date_display_html += "</span>" # 날짜 Span 종료
+                
+                # 💡 2. 커스텀 예약(평일 추가 코트 또는 연휴인데 별도 예약) 우선 렌더링
+                if info['show_custom']: 
+                    content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
+                    for hr in ['18', '19', '20', '21', '22']: 
+                        cls_7 = "cell-booked" if '7' in info['custom_data'][hr] else "cell-empty"
+                        cls_8 = "cell-booked" if '8' in info['custom_data'][hr] else "cell-empty"
+                        content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
+                    content_html += "</table>"
+                    
+                # 💡 3. 위 조건에 해당하지 않으면서 주말/공휴일 고정 대관일 경우 요약 뱃지 렌더링
+                elif info['show_fixed']:
                     badge_label = "[공휴일 고정대관]" if info['is_holiday'] else ("[일요일 고정대관]" if info['is_sun'] else "[토요일 고정대관]")
                     badge_color = "#ffebee" if (info['is_holiday'] or info['is_sun']) else "#e3f2fd"
                     
@@ -463,14 +486,8 @@ with tab2:
                         <div style='font-size:10px; color:#555; text-align:center; line-height:1.2; letter-spacing:-0.5px;'>{summary_text}</div>
                     </div>
                     """
-                    
-                elif info['type'] == 'custom': 
-                    content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
-                    for hr in ['18', '19', '20', '21', '22']: 
-                        cls_7 = "cell-booked" if '7' in info['data'][hr] else "cell-empty"
-                        cls_8 = "cell-booked" if '8' in info['data'][hr] else "cell-empty"
-                        content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
-                    content_html += "</table>"
+            else:
+                date_display_html += "</span>"
             
             calendar_html += f"<td class='{td_class}'>{date_display_html}{content_html}</td>"
         calendar_html += "</tr>"
