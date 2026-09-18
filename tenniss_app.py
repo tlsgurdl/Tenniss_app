@@ -47,13 +47,31 @@ st.markdown("""
     /* 💡 [핵심] 5칸짜리 이름 태그 블록 모바일 1열화 방지 및 5개씩 강제 배열 */
     /* 체크박스가 없는 순수 버튼 컬럼 영역만 타겟팅하여 레이아웃 충돌 방지 */
     div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) {
+        display: flex !important;
         flex-direction: row !important;
         flex-wrap: wrap !important;
     }
+    
+    /* PC/모바일 공통: Streamlit의 강제 넓히기 덮어쓰기 (max-width와 flex-basis 강력 고정) */
     div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) > div[data-testid="column"] {
         width: calc(20% - 0.5rem) !important;
         min-width: calc(20% - 0.5rem) !important;
-        flex: 1 1 calc(20% - 0.5rem) !important;
+        max-width: calc(20% - 0.5rem) !important;
+        flex: 0 0 calc(20% - 0.5rem) !important;
+    }
+    
+    /* 💡 모바일 환경(세로 모드 768px 이하)에서 강제로 1개씩 나오는 현상 완벽 방지 */
+    @media (max-width: 768px) {
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) {
+            gap: 4px !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) > div[data-testid="column"] {
+            width: calc(20% - 4px) !important;
+            min-width: calc(20% - 4px) !important;
+            max-width: calc(20% - 4px) !important;
+            flex: 0 0 calc(20% - 4px) !important;
+            display: block !important;
+        }
     }
     
     /* 💡 이름 태그 디자인 (덜 둥근 사각형 형태) */
