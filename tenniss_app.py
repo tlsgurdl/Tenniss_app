@@ -30,7 +30,7 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* 체크박스 디자인 */
+    /* 체크박스 한줄 배치 시 텍스트 짤림 방지 */
     div[data-testid="stCheckbox"] {
         padding: 5px 2px;
         border-radius: 6px;
@@ -39,31 +39,40 @@ st.markdown("""
     div[data-testid="stCheckbox"]:hover {
         background-color: #f1f8e9;
     }
+    div[data-testid="stCheckbox"] label span {
+        white-space: nowrap !important;
+        font-size: 13.5px !important;
+    }
     
-    /* 💡 [핵심] 10칸짜리 이름 버튼을 모바일에서 5개씩 줄바꿈 처리 */
-    div[data-testid="stVerticalBlock"] button p {
+    /* 💡 [핵심] 5칸짜리 이름 태그 블록 모바일 1열화 방지 및 5개씩 강제 배열 */
+    /* 체크박스가 없는 순수 버튼 컬럼 영역만 타겟팅하여 레이아웃 충돌 방지 */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) > div[data-testid="column"] {
+        width: calc(20% - 0.5rem) !important;
+        min-width: calc(20% - 0.5rem) !important;
+        flex: 1 1 calc(20% - 0.5rem) !important;
+    }
+    
+    /* 💡 이름 태그 디자인 (덜 둥근 사각형 형태) */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) button {
+        padding: 4px 0px !important;
+        border: 1px solid #ddd !important;
+        background-color: #f8f9fa !important;
+        border-radius: 6px !important; /* 알약에서 사각형 느낌으로 변경 */
+        box-shadow: 1px 1px 3px rgba(0,0,0,0.05) !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) button:hover {
+        border-color: #4CAF50 !important;
+        background-color: #e8f5e9 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) button p {
         font-size: 13.5px !important;
         white-space: nowrap !important;
-        text-overflow: clip !important;
-        overflow: visible !important;
         margin: 0 !important;
-    }
-    div[data-testid="stVerticalBlock"] button {
-        padding: 4px 0px !important;
-        border-radius: 20px !important;
-    }
-    @media (max-width: 767px) {
-        div[data-testid="stHorizontalBlock"]:has(> div:nth-child(10)) {
-            flex-direction: row !important;
-            flex-wrap: wrap !important;
-            gap: 6px !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(> div:nth-child(10)) > div[data-testid="column"] {
-            width: calc(20% - 5px) !important;
-            min-width: calc(20% - 5px) !important;
-            max-width: calc(20% - 5px) !important;
-            flex: 1 1 calc(20% - 5px) !important;
-        }
+        color: #333 !important;
     }
     
     div[data-testid="stExpander"] {
@@ -113,11 +122,11 @@ def get_weekend_schedule(d_obj):
         schedule[str(h)] = courts
     return schedule
 
-# 💡 [버그 수정] "휴관"이라는 정확한 단어가 있을 때만 휴장 처리! (추석 연휴 방해 방지)
 def get_closure_text(val):
     if "대회" in val: return "🏆 대회"
     if "우천" in val: return "🌧️ 우천취소"
     if "공사" in val: return "🚧 공사중"
+    # "추석", "연휴"는 제외하고 진짜 휴관 키워드만 잡습니다
     if "휴관" in val or "취소" in val or "block" in val: return "🚫 휴관"
     return None
 
@@ -144,7 +153,7 @@ def init_connection():
 sheet, sheet_schedule = init_connection()
 
 # ==========================================
-# 📅 2. 스케줄 및 시간 데이터 파싱 (KST)
+# 📅 2. 스케줄 및 시간 데이터 파싱 (한국 시간 고정)
 # ==========================================
 KST = timezone(timedelta(hours=9))
 today_dt = datetime.now(KST)
@@ -243,7 +252,7 @@ if sheet_schedule:
 available_time_slots = [t for t, courts in today_schedule.items() if len(courts) > 0]
 
 # ==========================================
-# 📝 3. 데이터 읽기/쓰기 및 세션 상태
+# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어
 # ==========================================
 if "input_name" not in st.session_state:
     st.session_state.input_name = ""
@@ -324,35 +333,35 @@ with tab1:
         if not available_time_slots:
             st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺")
         else:
-            st.markdown("**1️⃣ 닉네임 입력** (아래 버튼을 누르거나 직접 입력하세요)")
-            user_name = st.text_input("닉네임", key="input_name", placeholder="예: 김보람", label_visibility="collapsed")
+            st.markdown("**1️⃣ 이름 입력** (아래 태그를 누르거나 직접 입력하세요)")
+            user_name = st.text_input("닉네임(이름) 입력", key="input_name", placeholder="예: 김보람", label_visibility="collapsed")
             
+            # 💡 이름 태그 5칸 배치를 CSS와 완벽 연동
             members = get_all_members()
             if members:
-                btn_cols = st.columns(10)
+                btn_cols = st.columns(5)
                 for idx, member in enumerate(members):
-                    with btn_cols[idx % 10]:
+                    with btn_cols[idx % 5]:
                         st.button(member, key=f"btn_{idx}", on_click=set_name, args=(member,), use_container_width=True)
             
             st.markdown("---")
-            st.markdown("**2️⃣ 시간 선택 및 등록**")
+            st.markdown("**2️⃣ 참석 시간 선택** (우측 등록/취소 클릭)")
             
-            # 💡 [핵심 UI 변경] 가로 6 : 2 : 2 비율로 시간 체크와 버튼을 완벽하게 한 줄로 정렬
-            main_cols = st.columns([6, 2, 2])
+            # 💡 [핵심 UI 변경] 시간 체크박스와 버튼을 '단일 가로줄(Row)'로 완벽하게 묶음
+            num_slots = len(available_time_slots)
+            # 시간은 글씨가 기니까 비율을 크게(1.3), 버튼은 조금 작게(1.0) 설정하여 한 줄에 깔끔 정렬
+            ratios = [1.3] * num_slots + [1.0, 1.0] 
+            main_cols = st.columns(ratios)
             
             selected_times = []
-            with main_cols[0]:
-                # 시간 체크박스를 가로로 나란히 배치하기 위해 내부 컬럼 사용
-                num_slots = len(available_time_slots)
-                chk_cols = st.columns(num_slots)
-                for idx, time_slot in enumerate(available_time_slots):
-                    with chk_cols[idx]:
-                        # "18:00 ~ 19:00" -> "18시" 형식으로 짧고 깔끔하게 표시
-                        short_label = time_slot.split(":")[0] + "시" 
-                        if st.checkbox(short_label):
-                            selected_times.append(time_slot)
-            
-            with main_cols[1]:
+            for idx, time_slot in enumerate(available_time_slots):
+                with main_cols[idx]:
+                    # 원래 형태인 "18:00 ~ 19:00" 풀 텍스트 사용
+                    if st.checkbox(time_slot):
+                        selected_times.append(time_slot)
+                        
+            # 남은 2개의 칸에 버튼 우측 정렬 배치
+            with main_cols[-2]:
                 if st.button("🚀 등록", use_container_width=True, type="primary"):
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
@@ -369,7 +378,7 @@ with tab1:
                                 st.success(f"🎉 {user_name}님 등록 완료!")
                                 st.rerun()
                                 
-            with main_cols[2]:
+            with main_cols[-1]:
                 if st.button("🗑️ 취소", use_container_width=True):
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
