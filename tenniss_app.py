@@ -30,6 +30,7 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
+    /* 체크박스 한줄 배치 시 텍스트 짤림 방지 */
     div[data-testid="stCheckbox"] {
         padding: 5px 2px;
         border-radius: 6px;
@@ -41,48 +42,37 @@ st.markdown("""
     div[data-testid="stCheckbox"] label span {
         white-space: nowrap !important;
         font-size: 13.5px !important;
-        font-weight: 600 !important;
     }
     
-    /* 💡 [핵심] 이름 태그를 화면에 꽉 맞게 유동적으로 흐르도록(Flexbox) 마법 적용 */
-    /* st.container 내에 name-btn-wrapper 클래스가 있으면 전체를 Flex 컨테이너로 변환 */
-    div[data-testid="stVerticalBlock"]:has(span.name-btn-wrapper) {
-        display: flex !important;
+    /* 💡 [핵심] 5칸짜리 이름 태그 블록 모바일 1열화 방지 및 5개씩 강제 배열 */
+    /* 체크박스가 없는 순수 버튼 컬럼 영역만 타겟팅하여 레이아웃 충돌 방지 */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) {
         flex-direction: row !important;
         flex-wrap: wrap !important;
-        gap: 6px !important;
-        padding-bottom: 10px !important;
     }
-    /* 각 버튼 컨테이너가 글자 크기만큼만 폭을 차지하도록 설정 (글자 짤림 원천 차단) */
-    div[data-testid="stVerticalBlock"]:has(span.name-btn-wrapper) > div {
-        width: auto !important;
-        flex: 0 0 auto !important;
-    }
-    /* 숨겨둔 마커 스팬은 보이지 않게 처리 */
-    div[data-testid="stVerticalBlock"]:has(span.name-btn-wrapper) > div:has(span.name-btn-wrapper) {
-        display: none !important;
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) > div[data-testid="column"] {
+        width: calc(20% - 0.5rem) !important;
+        min-width: calc(20% - 0.5rem) !important;
+        flex: 1 1 calc(20% - 0.5rem) !important;
     }
     
-    /* 💡 덜 둥근 사각형 버튼 디자인 */
-    div[data-testid="stVerticalBlock"]:has(span.name-btn-wrapper) button {
-        padding: 4px 12px !important;
-        border-radius: 4px !important; /* 약간의 사각 느낌 적용 */
-        border: 1px solid #ccc !important;
+    /* 💡 이름 태그 디자인 (덜 둥근 사각형 형태) */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) button {
+        padding: 4px 0px !important;
+        border: 1px solid #ddd !important;
         background-color: #f8f9fa !important;
-        min-height: 32px !important;
-        height: 32px !important;
+        border-radius: 6px !important; /* 알약에서 사각형 느낌으로 변경 */
         box-shadow: 1px 1px 3px rgba(0,0,0,0.05) !important;
     }
-    div[data-testid="stVerticalBlock"]:has(span.name-btn-wrapper) button:hover {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) button:hover {
         border-color: #4CAF50 !important;
         background-color: #e8f5e9 !important;
-        color: #4CAF50 !important;
     }
-    div[data-testid="stVerticalBlock"]:has(span.name-btn-wrapper) button p {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(5):last-child):not(:has(input[type="checkbox"])) button p {
         font-size: 13.5px !important;
-        font-weight: 600 !important;
-        color: #333 !important;
+        white-space: nowrap !important;
         margin: 0 !important;
+        color: #333 !important;
     }
     
     div[data-testid="stExpander"] {
@@ -132,14 +122,12 @@ def get_weekend_schedule(d_obj):
         schedule[str(h)] = courts
     return schedule
 
-# 💡 [버그 수정] 명확한 휴관 키워드만 잡아냄 (연휴/추석 글자 무시)
 def get_closure_text(val):
-    clean_val = val.replace(" ", "")
-    if "대회" in clean_val: return "🏆 대회"
-    if "우천" in clean_val: return "🌧️ 우천취소"
-    if "공사" in clean_val: return "🚧 공사중"
-    if "휴관" in clean_val or "휴장" in clean_val or "취소" in clean_val or "block" in clean_val: return "🚫 휴관"
-    if val.strip() == "휴": return "🚫 휴관" # 단독으로 '휴'만 적힌 경우
+    if "대회" in val: return "🏆 대회"
+    if "우천" in val: return "🌧️ 우천취소"
+    if "공사" in val: return "🚧 공사중"
+    # "추석", "연휴"는 제외하고 진짜 휴관 키워드만 잡습니다
+    if "휴관" in val or "취소" in val or "block" in val: return "🚫 휴관"
     return None
 
 @st.cache_resource(ttl=600)
@@ -264,7 +252,7 @@ if sheet_schedule:
 available_time_slots = [t for t, courts in today_schedule.items() if len(courts) > 0]
 
 # ==========================================
-# 📝 3. 데이터 읽기/쓰기 및 세션 상태
+# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어
 # ==========================================
 if "input_name" not in st.session_state:
     st.session_state.input_name = ""
@@ -348,68 +336,64 @@ with tab1:
             st.markdown("**1️⃣ 이름 입력** (아래 태그를 누르거나 직접 입력하세요)")
             user_name = st.text_input("닉네임(이름) 입력", key="input_name", placeholder="예: 김보람", label_visibility="collapsed")
             
-            # 💡 [핵심] st.columns 로직 제거! 컨테이너 기반 유동(Flex) 레이아웃 적용
+            # 💡 이름 태그 5칸 배치를 CSS와 완벽 연동
             members = get_all_members()
             if members:
-                with st.container():
-                    # CSS 연동을 위한 빈 마커 삽입
-                    st.markdown('<span class="name-btn-wrapper"></span>', unsafe_allow_html=True)
-                    for member in members:
-                        st.button(member, key=f"btn_{member}", on_click=set_name, args=(member,))
+                btn_cols = st.columns(5)
+                for idx, member in enumerate(members):
+                    with btn_cols[idx % 5]:
+                        st.button(member, key=f"btn_{idx}", on_click=set_name, args=(member,), use_container_width=True)
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (체크 후 우측 등록 클릭)")
+            st.markdown("**2️⃣ 참석 시간 선택** (우측 등록/취소 클릭)")
             
-            # 💡 [핵심] 시간 체크와 버튼을 가로 6.5 : 3.5 비율로 깔끔하게 분할
-            col_chk, col_btn = st.columns([6.5, 3.5])
+            # 💡 [핵심 UI 변경] 시간 체크박스와 버튼을 '단일 가로줄(Row)'로 완벽하게 묶음
+            num_slots = len(available_time_slots)
+            # 시간은 글씨가 기니까 비율을 크게(1.3), 버튼은 조금 작게(1.0) 설정하여 한 줄에 깔끔 정렬
+            ratios = [1.3] * num_slots + [1.0, 1.0] 
+            main_cols = st.columns(ratios)
             
             selected_times = []
-            with col_chk:
-                # 체크박스 영역
-                chk_grid = st.columns(len(available_time_slots))
-                for idx, time_slot in enumerate(available_time_slots):
-                    with chk_grid[idx]:
-                        # 직관적인 시간 표시 (예: "18~19시")
-                        start_hr = time_slot.split(":")[0]
-                        end_hr = time_slot.split(" ~ ")[1].split(":")[0]
-                        if st.checkbox(f"{start_hr}~{end_hr}시"):
-                            selected_times.append(time_slot)
-                            
-            with col_btn:
-                # 등록/취소 버튼 영역
-                btn_grid = st.columns(2)
-                with btn_grid[0]:
-                    if st.button("🚀 등록", use_container_width=True, type="primary"):
-                        if not user_name.strip():
-                            st.warning("⚠️ 이름을 입력해 주세요!")
-                        elif not selected_times:
-                            st.warning("⚠️ 시간을 선택해 주세요!")
+            for idx, time_slot in enumerate(available_time_slots):
+                with main_cols[idx]:
+                    # 원래 형태인 "18:00 ~ 19:00" 풀 텍스트 사용
+                    if st.checkbox(time_slot):
+                        selected_times.append(time_slot)
+                        
+            # 남은 2개의 칸에 버튼 우측 정렬 배치
+            with main_cols[-2]:
+                if st.button("🚀 등록", use_container_width=True, type="primary"):
+                    if not user_name.strip():
+                        st.warning("⚠️ 이름을 입력해 주세요!")
+                    elif not selected_times:
+                        st.warning("⚠️ 시간을 선택해 주세요!")
+                    else:
+                        if not current_db.empty and user_name in current_db['이름'].values:
+                            st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
                         else:
-                            if not current_db.empty and user_name in current_db['이름'].values:
-                                st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
-                            else:
-                                with st.spinner("기록 중..."):
-                                    add_attendance(user_name, selected_times)
-                                    get_all_members.clear() 
+                            with st.spinner("기록 중..."):
+                                add_attendance(user_name, selected_times)
+                                get_all_members.clear() 
+                                st.session_state.clear_input = True 
+                                st.success(f"🎉 {user_name}님 등록 완료!")
+                                st.rerun()
+                                
+            with main_cols[-1]:
+                if st.button("🗑️ 취소", use_container_width=True):
+                    if not user_name.strip():
+                        st.warning("⚠️ 이름을 입력해 주세요!")
+                    else:
+                        if current_db.empty or user_name.strip() not in current_db['이름'].str.strip().values:
+                            st.warning(f"🚨 출석 내역이 없습니다.")
+                        else:
+                            with st.spinner("삭제 중..."):
+                                is_deleted = cancel_attendance(user_name)
+                                if is_deleted:
                                     st.session_state.clear_input = True 
-                                    st.success(f"🎉 {user_name}님 등록 완료!")
+                                    st.success(f"🗑️ 취소 완료!")
                                     st.rerun()
-                with btn_grid[1]:
-                    if st.button("🗑️ 취소", use_container_width=True):
-                        if not user_name.strip():
-                            st.warning("⚠️ 이름을 입력해 주세요!")
-                        else:
-                            if current_db.empty or user_name.strip() not in current_db['이름'].str.strip().values:
-                                st.warning(f"🚨 출석 내역이 없습니다.")
-                            else:
-                                with st.spinner("삭제 중..."):
-                                    is_deleted = cancel_attendance(user_name)
-                                    if is_deleted:
-                                        st.session_state.clear_input = True 
-                                        st.success(f"🗑️ 취소 완료!")
-                                        st.rerun()
-                                    else:
-                                        st.error("취소에 실패했습니다.")
+                                else:
+                                    st.error("취소에 실패했습니다.")
 
     st.divider()
 
