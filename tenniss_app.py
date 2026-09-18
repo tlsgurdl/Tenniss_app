@@ -9,7 +9,7 @@ import re
 import holidays 
 
 # ==========================================
-# 🎨 0. 극강의 UI/UX CSS 강제 주입 (레이아웃 파괴 요소 전면 제거!)
+# 🎨 0. 극강의 UI/UX CSS 강제 주입
 # ==========================================
 st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="centered", page_icon="🎾")
 
@@ -31,10 +31,19 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* 멀티셀렉트(시간 선택창) 테두리 강조 */
-    div[data-baseweb="select"] {
-        border: 1.5px solid #333 !important;
-        border-radius: 8px !important;
+    /* 💡 [복구 완료] 체크박스 한줄 배치 시 텍스트 짤림 방지 */
+    div[data-testid="stCheckbox"] {
+        padding: 5px 2px;
+        border-radius: 6px;
+        transition: background-color 0.2s;
+    }
+    div[data-testid="stCheckbox"]:hover {
+        background-color: #f1f8e9;
+    }
+    div[data-testid="stCheckbox"] label span {
+        white-space: nowrap !important;
+        font-size: 13.5px !important;
+        font-weight: 600 !important;
     }
     
     /* Expander 그림자 */
@@ -294,80 +303,72 @@ with tab1:
         if not available_time_slots:
             st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺")
         else:
-            # 💡 [마법 1] Streamlit 공식 'Pills(태그)' 기능 적용 (모바일/PC 완벽 자동 줄바꿈)
             st.markdown("**1️⃣ 이름 입력** (아래 태그를 누르거나 직접 입력하세요)")
             members = get_all_members()
             pill_val = None
             
             if members:
                 try:
-                    # Streamlit 1.37 버전 이상 전용: 완벽하게 반응형으로 동작하는 공식 태그 시스템
+                    # 모바일에서도 예쁘게 줄바꿈되는 태그 기능
                     pill_val = st.pills("기존 회원", options=members, key="pill_member", label_visibility="collapsed")
                 except AttributeError:
-                    # 혹시 구버전일 경우를 대비한 안전 장치 (드롭다운)
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
                     pill_val = sel[0] if sel else None
 
-            # 선택된 태그가 있으면 텍스트 박스에 자동 입력
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 김보람", label_visibility="collapsed")
             
             st.markdown("---")
             
-            # 💡 [마법 2] 시간 선택과 버튼들을 6 : 4 비율로 완벽한 '가로 한 줄' 배치
+            # 💡 [복구 완료] 시간 체크박스와 버튼을 '단일 가로줄(Row)'로 완벽하게 묶음
             st.markdown("**2️⃣ 참석 시간 선택** (선택 후 우측 등록/취소 클릭)")
             
-            col_time, col_btns = st.columns([6, 4])
+            num_slots = len(available_time_slots)
+            ratios = [1.3] * num_slots + [1.0, 1.0] 
+            main_cols = st.columns(ratios)
             
-            with col_time:
-                # 체크박스 대신 멀티셀렉트(다중 선택 드롭다운)를 사용하여 공간을 완벽하게 절약!
-                def format_time(t):
-                    start = t.split(":")[0]
-                    end = t.split(" ~ ")[1].split(":")[0]
-                    return f"{start}~{end}시" # 화면에는 "18~19시"로 직관적으로 표시
+            selected_times = []
+            for idx, time_slot in enumerate(available_time_slots):
+                with main_cols[idx]:
+                    start_hr = time_slot.split(":")[0]
+                    end_hr = time_slot.split(" ~ ")[1].split(":")[0]
+                    short_label = f"{start_hr}~{end_hr}시"
                     
-                selected_times = st.multiselect(
-                    "시간 선택",
-                    options=available_time_slots,
-                    format_func=format_time,
-                    placeholder="🕒 터치하여 시간 선택 (여러 개 가능)",
-                    label_visibility="collapsed"
-                )
+                    if st.checkbox(short_label):
+                        selected_times.append(time_slot)
                         
-            with col_btns:
-                b1, b2 = st.columns(2)
-                with b1:
-                    if st.button("🚀 등록", use_container_width=True, type="primary"):
-                        if not user_name.strip():
-                            st.warning("⚠️ 이름을 입력하세요!")
-                        elif not selected_times:
-                            st.warning("⚠️ 시간을 선택하세요!")
+            with main_cols[-2]:
+                if st.button("🚀 등록", use_container_width=True, type="primary"):
+                    if not user_name.strip():
+                        st.warning("⚠️ 이름을 입력해 주세요!")
+                    elif not selected_times:
+                        st.warning("⚠️ 시간을 선택해 주세요!")
+                    else:
+                        if not current_db.empty and user_name in current_db['이름'].values:
+                            st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
                         else:
-                            if not current_db.empty and user_name in current_db['이름'].values:
-                                st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
-                            else:
-                                with st.spinner("기록 중..."):
-                                    add_attendance(user_name, selected_times)
-                                    get_all_members.clear() 
+                            with st.spinner("기록 중..."):
+                                add_attendance(user_name, selected_times)
+                                get_all_members.clear() 
+                                st.session_state.clear_input = True 
+                                st.success(f"🎉 {user_name}님 등록 완료!")
+                                st.rerun()
+                                
+            with main_cols[-1]:
+                if st.button("🗑️ 취소", use_container_width=True):
+                    if not user_name.strip():
+                        st.warning("⚠️ 이름을 입력해 주세요!")
+                    else:
+                        if current_db.empty or user_name.strip() not in current_db['이름'].str.strip().values:
+                            st.warning(f"🚨 출석 내역이 없습니다.")
+                        else:
+                            with st.spinner("삭제 중..."):
+                                is_deleted = cancel_attendance(user_name)
+                                if is_deleted:
                                     st.session_state.clear_input = True 
-                                    st.success(f"🎉 등록 완료!")
+                                    st.success(f"🗑️ 취소 완료!")
                                     st.rerun()
-                                    
-                with b2:
-                    if st.button("🗑️ 취소", use_container_width=True):
-                        if not user_name.strip():
-                            st.warning("⚠️ 이름을 입력하세요!")
-                        else:
-                            if current_db.empty or user_name.strip() not in current_db['이름'].str.strip().values:
-                                st.warning(f"🚨 출석 내역이 없습니다.")
-                            else:
-                                with st.spinner("삭제 중..."):
-                                    is_deleted = cancel_attendance(user_name)
-                                    if is_deleted:
-                                        st.session_state.clear_input = True 
-                                        st.success(f"🗑️ 취소 완료!")
-                                        st.rerun()
-                                    else:
-                                        st.error("취소 실패!")
+                                else:
+                                    st.error("취소에 실패했습니다.")
 
     st.divider()
 
