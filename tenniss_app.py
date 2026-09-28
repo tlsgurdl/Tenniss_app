@@ -31,26 +31,16 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* 체크박스 한줄 배치 시 텍스트 짤림 방지 */
-    div[data-testid="stCheckbox"] {
-        padding: 5px 2px;
-        border-radius: 6px;
-        transition: background-color 0.2s;
-    }
-    div[data-testid="stCheckbox"]:hover {
-        background-color: #f1f8e9;
-    }
-    div[data-testid="stCheckbox"] label span {
-        white-space: nowrap !important;
-        font-size: 13.5px !important;
-        font-weight: 600 !important;
-    }
-    
     /* Expander 그림자 */
     div[data-testid="stExpander"] {
         border: 1px solid #e0e0e0;
         border-radius: 12px;
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* 슬라이더 간격 조정 */
+    div[data-testid="stSliderTickBar"] {
+        padding-bottom: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -126,7 +116,7 @@ def init_connection():
 sheet, sheet_schedule = init_connection()
 
 # ==========================================
-# 📅 2. 스케줄 및 시간 데이터 파싱 (버그 수정)
+# 📅 2. 스케줄 및 시간 데이터 파싱
 # ==========================================
 KST = timezone(timedelta(hours=9))
 today_dt = datetime.now(KST)
@@ -135,7 +125,6 @@ today_str = today_dt.strftime('%Y-%m-%d')
 today_schedule = {} 
 monthly_schedule_dict = {} 
 
-# 주말/공휴일 오늘 스케줄 초기 세팅
 fixed_today = get_weekend_schedule(today_dt)
 for h in range(13, 23):
     ui_time = time_slots_mapping[f"{h}:00"]
@@ -155,7 +144,6 @@ if sheet_schedule:
             has_extra_courts = False
             day_data = {str(h): [] for h in range(18, 23)}
             
-            # 1) 전체 휴관/대회 여부 체크 (한 시간이라도 포함되면 그날은 쉼)
             for h in range(13, 23):
                 val = str(row.get(f"{h}:00", "")).strip()
                 if val:
@@ -164,7 +152,6 @@ if sheet_schedule:
                         closure_text = c_txt
                         break
             
-            # 2) 휴관이 아니면 커스텀 코트(7, 8번) 확인
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
@@ -176,7 +163,6 @@ if sheet_schedule:
                         day_data[str(h)].append('8')
                         has_extra_courts = True
                         
-            # 3) 달력 렌더링용 dict 에 저장
             if date_val not in monthly_schedule_dict:
                 try:
                     dt_obj = datetime.strptime(date_val, '%Y-%m-%d').date()
@@ -199,10 +185,8 @@ if sheet_schedule:
                 monthly_schedule_dict[date_val]['custom_data'] = day_data
                 monthly_schedule_dict[date_val]['show_fixed'] = False 
 
-            # 4) [버그 수정] 오늘 날짜인 경우 코트 현황판 덮어쓰기 로직
             if date_val == today_str:
                 if closure_text:
-                    # 💡 완전히 휴관/대회인 경우 오늘 전체 스케줄을 배열을 비워서 날려버림
                     for h in range(13, 23):
                         ui_time = time_slots_mapping[f"{h}:00"]
                         today_schedule[ui_time] = []
@@ -224,14 +208,12 @@ if sheet_schedule:
 available_time_slots = [t for t, courts in today_schedule.items() if len(courts) > 0]
 
 # ==========================================
-# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어 (달력 상태 포함)
+# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어
 # ==========================================
 if "clear_input" not in st.session_state:
     st.session_state.clear_input = False
-
 if "view_year" not in st.session_state:
     st.session_state.view_year = today_dt.year
-
 if "view_month" not in st.session_state:
     st.session_state.view_month = today_dt.month
 
@@ -321,23 +303,53 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (선택 후 우측 등록/취소 클릭)")
             
-            num_slots = len(available_time_slots)
-            ratios = [1.3] * num_slots + [1.0, 1.0] 
-            main_cols = st.columns(ratios)
+            # 💡 [핵심 변경] 체크박스 대신 구간(Range) 슬라이더 배치
+            st.markdown("**2️⃣ 참석 시간 선택** (양끝을 드래그하여 구간을 선택하세요)")
             
             selected_times = []
-            for idx, time_slot in enumerate(available_time_slots):
-                with main_cols[idx]:
-                    start_hr = time_slot.split(":")[0]
-                    end_hr = time_slot.split(" ~ ")[1].split(":")[0]
-                    short_label = f"{start_hr}~{end_hr}시"
+            
+            if len(available_time_slots) == 1:
+                # 시간이 하나뿐일 때는 체크박스로 간략히 제공
+                col_chk, col_reg, col_can = st.columns([3, 1, 1])
+                with col_chk:
+                    if st.checkbox(f"✅ {available_time_slots[0]}", value=True):
+                        selected_times = [available_time_slots[0]]
+                btn_reg = col_reg
+                btn_can = col_can
+            else:
+                # 시간이 2개 이상일 때 구간 슬라이더 생성
+                short_labels = []
+                slot_mapping = {}
+                for t in available_time_slots:
+                    start_hr = t.split(":")[0]
+                    end_hr = t.split(" ~ ")[1].split(":")[0]
+                    lbl = f"{start_hr}~{end_hr}시"
+                    if "심야" in t:
+                        lbl = "22~23시"
+                    short_labels.append(lbl)
+                    slot_mapping[lbl] = t
+                
+                col_slider, col_reg, col_can = st.columns([3, 1.2, 1.2])
+                with col_slider:
+                    # value에 튜플(시작, 끝)을 넘기면 구간 범위 슬라이더가 생성됨
+                    selected_range = st.select_slider(
+                        "참석 시간",
+                        options=short_labels,
+                        value=(short_labels[0], short_labels[0]),
+                        label_visibility="collapsed"
+                    )
                     
-                    if st.checkbox(short_label):
-                        selected_times.append(time_slot)
-                        
-            with main_cols[-2]:
+                    # 슬라이더에서 선택된 구간(시작점~끝점)을 계산하여 리스트에 모두 담기
+                    start_idx = short_labels.index(selected_range[0])
+                    end_idx = short_labels.index(selected_range[1])
+                    for i in range(start_idx, end_idx + 1):
+                        selected_times.append(slot_mapping[short_labels[i]])
+                
+                btn_reg = col_reg
+                btn_can = col_can
+
+            with btn_reg:
                 if st.button("🚀 등록", use_container_width=True, type="primary"):
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
@@ -354,7 +366,7 @@ with tab1:
                                 st.success(f"🎉 {user_name}님 등록 완료!")
                                 st.rerun()
                                 
-            with main_cols[-1]:
+            with btn_can:
                 if st.button("🗑️ 취소", use_container_width=True):
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
@@ -438,10 +450,9 @@ with tab1:
 
 
 # ==========================================
-# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (기능 강화)
+# 🗓️ 5. 두 번째 탭: 월간 예약 달력
 # ==========================================
 with tab2:
-    # 💡 이전/다음 달 이동 버튼
     col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
     with col_btn1:
         if st.button("◀ 이전 달", use_container_width=True):
@@ -464,7 +475,6 @@ with tab2:
                 st.session_state.view_month += 1
             st.rerun()
 
-    # 💡 달력 생성 (일요일 시작: firstweekday=6)
     cal_generator = calendar.Calendar(firstweekday=6)
     viewed_month_dates_list = cal_generator.monthdatescalendar(st.session_state.view_year, st.session_state.view_month)
     
@@ -503,7 +513,6 @@ with tab2:
             date_str = day.strftime('%Y-%m-%d')
             day_num = day.day
             
-            # 동적으로 넘어간 달력의 기본값(주말/휴일)을 딕셔너리에 채워줌
             if date_str not in monthly_schedule_dict:
                 is_hol = day in kr_holidays
                 is_sun = (day.weekday() == 6)
