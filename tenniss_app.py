@@ -31,7 +31,7 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* 💡 [복구 완료] 체크박스 한줄 배치 시 텍스트 짤림 방지 */
+    /* 체크박스 한줄 배치 시 텍스트 짤림 방지 */
     div[data-testid="stCheckbox"] {
         padding: 5px 2px;
         border-radius: 6px;
@@ -126,7 +126,7 @@ def init_connection():
 sheet, sheet_schedule = init_connection()
 
 # ==========================================
-# 📅 2. 스케줄 및 시간 데이터 파싱 (한국 시간 고정)
+# 📅 2. 스케줄 및 시간 데이터 파싱 (버그 수정)
 # ==========================================
 KST = timezone(timedelta(hours=9))
 today_dt = datetime.now(KST)
@@ -135,26 +135,7 @@ today_str = today_dt.strftime('%Y-%m-%d')
 today_schedule = {} 
 monthly_schedule_dict = {} 
 
-cal_generator = calendar.Calendar(firstweekday=0)
-month_dates_list = cal_generator.monthdatescalendar(today_dt.year, today_dt.month)
-
-for week in month_dates_list:
-    for day in week:
-        if day.month == today_dt.month:
-            date_s = day.strftime('%Y-%m-%d')
-            is_hol = day in kr_holidays
-            is_sun = (day.weekday() == 6)
-            is_weekend = (day.weekday() >= 5)
-            
-            monthly_schedule_dict[date_s] = {
-                'is_holiday': is_hol,
-                'is_sun': is_sun,
-                'show_fixed': (is_weekend or is_hol),
-                'show_custom': False,
-                'custom_data': None,
-                'closure': None
-            }
-
+# 주말/공휴일 오늘 스케줄 초기 세팅
 fixed_today = get_weekend_schedule(today_dt)
 for h in range(13, 23):
     ui_time = time_slots_mapping[f"{h}:00"]
@@ -174,6 +155,7 @@ if sheet_schedule:
             has_extra_courts = False
             day_data = {str(h): [] for h in range(18, 23)}
             
+            # 1) 전체 휴관/대회 여부 체크 (한 시간이라도 포함되면 그날은 쉼)
             for h in range(13, 23):
                 val = str(row.get(f"{h}:00", "")).strip()
                 if val:
@@ -182,6 +164,7 @@ if sheet_schedule:
                         closure_text = c_txt
                         break
             
+            # 2) 휴관이 아니면 커스텀 코트(7, 8번) 확인
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
@@ -193,9 +176,18 @@ if sheet_schedule:
                         day_data[str(h)].append('8')
                         has_extra_courts = True
                         
+            # 3) 달력 렌더링용 dict 에 저장
             if date_val not in monthly_schedule_dict:
+                try:
+                    dt_obj = datetime.strptime(date_val, '%Y-%m-%d').date()
+                    is_hol = dt_obj in kr_holidays
+                    is_sun = (dt_obj.weekday() == 6)
+                    is_weekend = (dt_obj.weekday() >= 5)
+                except:
+                    is_hol, is_sun, is_weekend = False, False, False
+
                 monthly_schedule_dict[date_val] = {
-                    'is_holiday': False, 'is_sun': False, 'show_fixed': False, 'show_custom': False, 'custom_data': None, 'closure': None
+                    'is_holiday': is_hol, 'is_sun': is_sun, 'show_fixed': (is_weekend or is_hol), 'show_custom': False, 'custom_data': None, 'closure': None
                 }
                 
             if closure_text:
@@ -207,31 +199,43 @@ if sheet_schedule:
                 monthly_schedule_dict[date_val]['custom_data'] = day_data
                 monthly_schedule_dict[date_val]['show_fixed'] = False 
 
+            # 4) [버그 수정] 오늘 날짜인 경우 코트 현황판 덮어쓰기 로직
             if date_val == today_str:
-                for h in range(13, 23):
-                    col_name = f"{h}:00"
-                    if col_name in row: 
-                        val = str(row.get(col_name, "")).strip()
-                        ui_time = time_slots_mapping[col_name]
-                        if val:
-                            if get_closure_text(val):
-                                today_schedule[ui_time] = [] 
-                            else:
-                                today_schedule[ui_time] = list(re.sub(r'\D', '', val))
+                if closure_text:
+                    # 💡 완전히 휴관/대회인 경우 오늘 전체 스케줄을 배열을 비워서 날려버림
+                    for h in range(13, 23):
+                        ui_time = time_slots_mapping[f"{h}:00"]
+                        today_schedule[ui_time] = []
+                else:
+                    for h in range(13, 23):
+                        col_name = f"{h}:00"
+                        if col_name in row: 
+                            val = str(row.get(col_name, "")).strip()
+                            ui_time = time_slots_mapping[col_name]
+                            if val:
+                                if get_closure_text(val):
+                                    today_schedule[ui_time] = [] 
+                                else:
+                                    today_schedule[ui_time] = list(re.sub(r'\D', '', val))
 
     except Exception as e:
-        st.warning("⚠️ 스케줄 데이터를 읽는 중 문제가 발생했습니다.")
+        st.warning(f"⚠️ 스케줄 데이터를 읽는 중 문제가 발생했습니다: {e}")
 
 available_time_slots = [t for t, courts in today_schedule.items() if len(courts) > 0]
 
 # ==========================================
-# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어
+# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어 (달력 상태 포함)
 # ==========================================
 if "clear_input" not in st.session_state:
     st.session_state.clear_input = False
 
+if "view_year" not in st.session_state:
+    st.session_state.view_year = today_dt.year
+
+if "view_month" not in st.session_state:
+    st.session_state.view_month = today_dt.month
+
 if st.session_state.clear_input:
-    # 성공 후 입력창 초기화 로직
     if "pill_member" in st.session_state:
         st.session_state.pill_member = None
     st.session_state.clear_input = False
@@ -301,7 +305,7 @@ with tab1:
 
     with st.expander("🙋‍♂️ [회원용] 3초 출석 체크 / 취소", expanded=True):
         if not available_time_slots:
-            st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺")
+            st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺 (휴관 또는 대회)")
         else:
             st.markdown("**1️⃣ 이름 입력** (아래 태그를 누르거나 직접 입력하세요)")
             members = get_all_members()
@@ -309,7 +313,6 @@ with tab1:
             
             if members:
                 try:
-                    # 모바일에서도 예쁘게 줄바꿈되는 태그 기능
                     pill_val = st.pills("기존 회원", options=members, key="pill_member", label_visibility="collapsed")
                 except AttributeError:
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
@@ -318,8 +321,6 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            
-            # 💡 [복구 완료] 시간 체크박스와 버튼을 '단일 가로줄(Row)'로 완벽하게 묶음
             st.markdown("**2️⃣ 참석 시간 선택** (선택 후 우측 등록/취소 클릭)")
             
             num_slots = len(available_time_slots)
@@ -435,11 +436,37 @@ with tab1:
             summary_df = current_db.groupby('참석시간')['이름'].apply(lambda x: ', '.join(x.astype(str))).reset_index()
             st.table(summary_df)
 
+
 # ==========================================
-# 🗓️ 5. 두 번째 탭: 월간 예약 달력 
+# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (기능 강화)
 # ==========================================
 with tab2:
-    st.subheader(f"📅 {today_dt.year}년 {today_dt.month}월 추가 코트 현황")
+    # 💡 이전/다음 달 이동 버튼
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+    with col_btn1:
+        if st.button("◀ 이전 달", use_container_width=True):
+            if st.session_state.view_month == 1:
+                st.session_state.view_month = 12
+                st.session_state.view_year -= 1
+            else:
+                st.session_state.view_month -= 1
+            st.rerun()
+            
+    with col_btn2:
+        st.markdown(f"<h4 style='text-align: center; margin-top: 5px;'>📅 {st.session_state.view_year}년 {st.session_state.view_month}월 예약</h4>", unsafe_allow_html=True)
+        
+    with col_btn3:
+        if st.button("다음 달 ▶", use_container_width=True):
+            if st.session_state.view_month == 12:
+                st.session_state.view_month = 1
+                st.session_state.view_year += 1
+            else:
+                st.session_state.view_month += 1
+            st.rerun()
+
+    # 💡 달력 생성 (일요일 시작: firstweekday=6)
+    cal_generator = calendar.Calendar(firstweekday=6)
+    viewed_month_dates_list = cal_generator.monthdatescalendar(st.session_state.view_year, st.session_state.view_month)
     
     calendar_html = """
     <style>
@@ -460,19 +487,33 @@ with tab2:
     </style>
     <table class="cal-table">
         <tr>
-            <th class="cal-th">월</th><th class="cal-th">화</th><th class="cal-th">수</th>
-            <th class="cal-th">목</th><th class="cal-th">금</th><th class="cal-th" style="color:blue;">토</th><th class="cal-th" style="color:red;">일</th>
+            <th class="cal-th" style="color:red;">일</th>
+            <th class="cal-th">월</th>
+            <th class="cal-th">화</th>
+            <th class="cal-th">수</th>
+            <th class="cal-th">목</th>
+            <th class="cal-th">금</th>
+            <th class="cal-th" style="color:blue;">토</th>
         </tr>
     """
     
-    for week in month_dates_list:
+    for week in viewed_month_dates_list:
         calendar_html += "<tr>"
         for day in week:
             date_str = day.strftime('%Y-%m-%d')
             day_num = day.day
             
+            # 동적으로 넘어간 달력의 기본값(주말/휴일)을 딕셔너리에 채워줌
+            if date_str not in monthly_schedule_dict:
+                is_hol = day in kr_holidays
+                is_sun = (day.weekday() == 6)
+                is_weekend = (day.weekday() >= 5)
+                monthly_schedule_dict[date_str] = {
+                    'is_holiday': is_hol, 'is_sun': is_sun, 'show_fixed': (is_weekend or is_hol), 'show_custom': False, 'custom_data': None, 'closure': None
+                }
+
             td_class = "cal-td"
-            if day.month != today_dt.month:
+            if day.month != st.session_state.view_month:
                 td_class += " cal-other-month"
             if date_str == today_str:
                 td_class += " cal-today"
@@ -480,46 +521,43 @@ with tab2:
             date_display_html = f"<span class='cal-date'>{day_num}"
             content_html = ""
             
-            if date_str in monthly_schedule_dict:
-                info = monthly_schedule_dict[date_str]
+            info = monthly_schedule_dict[date_str]
                 
-                if info['is_holiday']:
-                    date_display_html += "<span style='color: #c62828; font-size: 10px; font-weight: 800; margin-left: 4px;'>[연휴]</span>"
-                date_display_html += "</span>" 
-                
-                if info['closure']:
-                    content_html = f"<span class='closure-badge'>{info['closure']}</span>"
-                
-                elif info['show_custom']: 
-                    content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
-                    for hr in ['18', '19', '20', '21', '22']: 
-                        cls_7 = "cell-booked" if '7' in info['custom_data'][hr] else "cell-empty"
-                        cls_8 = "cell-booked" if '8' in info['custom_data'][hr] else "cell-empty"
-                        content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
-                    content_html += "</table>"
-                    
-                elif info['show_fixed']:
-                    badge_label = "[공휴일 고정대관]" if info['is_holiday'] else ("[일요일 고정대관]" if info['is_sun'] else "[토요일 고정대관]")
-                    badge_color = "#ffebee" if (info['is_holiday'] or info['is_sun']) else "#e3f2fd"
-                    
-                    if info['is_holiday'] or info['is_sun']:
-                        summary_text = "6번: 13-20시<br>7번: 13-19시<br>8번: 15-19시"
-                    else:
-                        summary_text = "6번: 13-21시<br>7번: 13-20시<br>8번: 15-19시"
-                        
-                    content_html = f"""
-                    <div style='background-color:{badge_color}; padding:4px; border-radius:4px; margin-top:4px;'>
-                        <div style='font-size:9.5px; font-weight:800; text-align:center; margin-bottom:2px;'>{badge_label}</div>
-                        <div style='font-size:10px; color:#555; text-align:center; line-height:1.2; letter-spacing:-0.5px;'>{summary_text}</div>
-                    </div>
-                    """
-            else:
-                date_display_html += "</span>"
+            if info['is_holiday']:
+                date_display_html += "<span style='color: #c62828; font-size: 10px; font-weight: 800; margin-left: 4px;'>[연휴]</span>"
+            date_display_html += "</span>" 
             
+            if info['closure']:
+                content_html = f"<span class='closure-badge'>{info['closure']}</span>"
+            
+            elif info['show_custom']: 
+                content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
+                for hr in ['18', '19', '20', '21', '22']: 
+                    cls_7 = "cell-booked" if '7' in info['custom_data'][hr] else "cell-empty"
+                    cls_8 = "cell-booked" if '8' in info['custom_data'][hr] else "cell-empty"
+                    content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
+                content_html += "</table>"
+                
+            elif info['show_fixed']:
+                badge_label = "[공휴일 고정대관]" if info['is_holiday'] else ("[일요일 고정대관]" if info['is_sun'] else "[토요일 고정대관]")
+                badge_color = "#ffebee" if (info['is_holiday'] or info['is_sun']) else "#e3f2fd"
+                
+                if info['is_holiday'] or info['is_sun']:
+                    summary_text = "6번: 13-20시<br>7번: 13-19시<br>8번: 15-19시"
+                else:
+                    summary_text = "6번: 13-21시<br>7번: 13-20시<br>8번: 15-19시"
+                    
+                content_html = f"""
+                <div style='background-color:{badge_color}; padding:4px; border-radius:4px; margin-top:4px;'>
+                    <div style='font-size:9.5px; font-weight:800; text-align:center; margin-bottom:2px;'>{badge_label}</div>
+                    <div style='font-size:10px; color:#555; text-align:center; line-height:1.2; letter-spacing:-0.5px;'>{summary_text}</div>
+                </div>
+                """
+                
             calendar_html += f"<td class='{td_class}'>{date_display_html}{content_html}</td>"
         calendar_html += "</tr>"
         
     calendar_html += "</table>"
     
     st.markdown(calendar_html, unsafe_allow_html=True)
-    st.caption("💡 주말/공휴일은 고정 스케줄이 반영되며, 시트에 '휴관', '대회' 등의 정확한 키워드가 있으면 휴장 처리됩니다.")
+    st.caption("💡 주말/공휴일은 고정 스케줄이 반영되며, 시트에 '휴관', '대회' 등의 키워드가 있으면 휴장 처리됩니다.")
