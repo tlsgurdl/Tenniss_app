@@ -344,7 +344,7 @@ with tab1:
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
                     elif not selected_times:
-                        st.warning("⚠️️ 시간을 선택해 주세요!")
+                        st.warning("⚠️ 시간을 선택해 주세요!")
                     else:
                         if not current_db.empty and user_name in current_db['이름'].values:
                             st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
@@ -475,8 +475,8 @@ with tab2:
         .cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
         .cal-th { background-color: #f8f9fa; padding: 8px 0; text-align: center; border: 1px solid #ddd; font-size: 13px; color: #333; }
         .cal-td { border: 1px solid #ddd; height: 125px; vertical-align: top; padding: 4px; background-color: #fff; transition: background 0.2s; }
-        .cal-date { font-weight: bold; font-size: 13px; color: #333; margin-bottom: 2px; display: block; text-align: left; padding-left: 2px;}
-        .cal-other-month { color: #ccc; background-color: #fafafa; }
+        .cal-date { font-weight: bold; font-size: 13px; margin-bottom: 2px; display: block; text-align: left; padding-left: 2px;}
+        .cal-other-month { background-color: #fafafa; }
         .cal-today { background-color: #e8f5e9; border: 2px solid #4CAF50; }
         
         .mini-table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 3px; table-layout: fixed;}
@@ -489,13 +489,13 @@ with tab2:
     </style>
     <table class="cal-table">
         <tr>
-            <th class="cal-th" style="color:red;">일</th>
+            <th class="cal-th" style="color:#d32f2f;">일</th>
             <th class="cal-th">월</th>
             <th class="cal-th">화</th>
             <th class="cal-th">수</th>
             <th class="cal-th">목</th>
             <th class="cal-th">금</th>
-            <th class="cal-th" style="color:blue;">토</th>
+            <th class="cal-th" style="color:#1976d2;">토</th>
         </tr>
     """
     
@@ -520,13 +520,29 @@ with tab2:
             if date_str == today_str:
                 td_class += " cal-today"
                 
-            date_display_html = f"<span class='cal-date'>{day_num}"
-            content_html = ""
-            
             info = monthly_schedule_dict[date_str]
+            
+            # 날짜 텍스트 색상 결정 (일/공휴일: 빨강, 토요일: 파랑, 평일: 기본)
+            if day.month != st.session_state.view_month:
+                if info['is_holiday'] or info['is_sun']:
+                    date_color = "#ef9a9a" # 연한 빨강
+                elif day.weekday() == 5:
+                    date_color = "#90caf9" # 연한 파랑
+                else:
+                    date_color = "#cccccc" # 연한 회색
+            else:
+                if info['is_holiday'] or info['is_sun']:
+                    date_color = "#d32f2f" # 진한 빨강
+                elif day.weekday() == 5:
+                    date_color = "#1976d2" # 진한 파랑
+                else:
+                    date_color = "#333333" # 진한 회색
+                
+            date_display_html = f"<span class='cal-date' style='color: {date_color};'>{day_num}"
+            content_html = ""
                 
             if info['is_holiday']:
-                date_display_html += "<span style='color: #c62828; font-size: 10px; font-weight: 800; margin-left: 4px;'>[연휴]</span>"
+                date_display_html += f"<span style='color: {date_color}; font-size: 10px; font-weight: 800; margin-left: 4px;'>[연휴]</span>"
             date_display_html += "</span>" 
             
             if info['closure']:
@@ -550,7 +566,7 @@ with tab2:
                     content_html += f"</tr>"
                 content_html += "</table>"
                 
-            # [수정됨] 주말/공휴일 고정대관 표시 파트 (텍스트 라벨 제거)
+            # 주말/공휴일 고정대관 표시 파트
             elif info['show_fixed']:
                 is_sun_hol = info['is_holiday'] or info['is_sun']
                 hr_range = range(13, 20) if is_sun_hol else range(13, 21)
