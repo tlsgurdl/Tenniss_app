@@ -344,7 +344,7 @@ with tab1:
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
                     elif not selected_times:
-                        st.warning("⚠️ 시간을 선택해 주세요!")
+                        st.warning("⚠️️ 시간을 선택해 주세요!")
                     else:
                         if not current_db.empty and user_name in current_db['이름'].values:
                             st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
@@ -550,16 +550,12 @@ with tab2:
                     content_html += f"</tr>"
                 content_html += "</table>"
                 
-            # [수정됨] 주말/공휴일 고정대관 표시 파트 (표 형태로 변경)
+            # [수정됨] 주말/공휴일 고정대관 표시 파트 (텍스트 라벨 제거)
             elif info['show_fixed']:
-                badge_label = "[공휴일]" if info['is_holiday'] else ("[일요일]" if info['is_sun'] else "[토요일]")
-                badge_color = "#ffebee" if (info['is_holiday'] or info['is_sun']) else "#e3f2fd"
-                
                 is_sun_hol = info['is_holiday'] or info['is_sun']
                 hr_range = range(13, 20) if is_sun_hol else range(13, 21)
                 
-                content_html = f"<div style='background-color:{badge_color}; border-radius:4px; margin-bottom:2px; font-size:9.5px; font-weight:800; text-align:center; padding: 2px 0; color:#333;'>{badge_label} 고정</div>"
-                content_html += "<table class='mini-table' style='margin-top:0;'><tr><th class='mini-th' style='width:34%;'>6</th><th class='mini-th' style='width:33%;'>7</th><th class='mini-th' style='width:33%;'>8</th></tr>"
+                content_html = "<table class='mini-table' style='margin-top:0;'><tr><th class='mini-th' style='width:34%;'>6</th><th class='mini-th' style='width:33%;'>7</th><th class='mini-th' style='width:33%;'>8</th></tr>"
                 
                 for hr_int in hr_range:
                     is_6 = True
