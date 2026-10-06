@@ -164,7 +164,7 @@ if sheet_schedule:
                         closure_text = c_txt
                         break
             
-            # 2) 휴관이 아니면 커스텀 코트(6, 7, 8번) 확인 [수정됨: 6번 코트 파싱 추가]
+            # 2) 휴관이 아니면 커스텀 코트(6, 7, 8번) 확인
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
@@ -378,7 +378,7 @@ with tab1:
     # --- [현황판] ---
     st.subheader("🚥 실시간 코트 현황판")
     if not available_time_slots:
-        st.warning("⚠️️ 오늘 예약된 코트가 없습니다.")
+        st.warning("⚠ 오늘 예약된 코트가 없습니다.")
     else:
         if not current_db.empty and '참석시간' in current_db.columns:
             attendance_counts = current_db['참석시간'].value_counts().to_dict()
@@ -440,7 +440,7 @@ with tab1:
 
 
 # ==========================================
-# 🗓️ 5. 두 번째 탭: 월간 예약 달력 (기능 강화)
+# 🗓️ 5. 두 번째 탭: 월간 예약 달력
 # ==========================================
 with tab2:
     # 💡 이전/다음 달 이동 버튼
@@ -532,7 +532,7 @@ with tab2:
             if info['closure']:
                 content_html = f"<span class='closure-badge'>{info['closure']}</span>"
             
-            # [수정됨: 6번 코트 반영 및 헤더 변경 (시 -> 6)]
+            # 평일 예약 스케줄 표시 파트
             elif info['show_custom']: 
                 content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:34%;'>6</th><th class='mini-th' style='width:33%;'>7</th><th class='mini-th' style='width:33%;'>8</th></tr>"
                 for hr in ['18', '19', '20', '21', '22']: 
@@ -540,7 +540,6 @@ with tab2:
                     cls_7 = "cell-booked" if '7' in info['custom_data'][hr] else "cell-empty"
                     cls_8 = "cell-booked" if '8' in info['custom_data'][hr] else "cell-empty"
                     
-                    # 6번 코트 칸에 시간을 표시하되, 예약 여부(초록 배경)에 따라 글씨 색상을 조정합니다.
                     txt_color = "#ffffff" if '6' in info['custom_data'][hr] else "#666666"
                     font_weight = "bold" if '6' in info['custom_data'][hr] else "normal"
                     
@@ -551,21 +550,35 @@ with tab2:
                     content_html += f"</tr>"
                 content_html += "</table>"
                 
+            # [수정됨] 주말/공휴일 고정대관 표시 파트 (표 형태로 변경)
             elif info['show_fixed']:
-                badge_label = "[공휴일 고정대관]" if info['is_holiday'] else ("[일요일 고정대관]" if info['is_sun'] else "[토요일 고정대관]")
+                badge_label = "[공휴일]" if info['is_holiday'] else ("[일요일]" if info['is_sun'] else "[토요일]")
                 badge_color = "#ffebee" if (info['is_holiday'] or info['is_sun']) else "#e3f2fd"
                 
-                if info['is_holiday'] or info['is_sun']:
-                    summary_text = "6번: 13-20시<br>7번: 13-19시<br>8번: 15-19시"
-                else:
-                    summary_text = "6번: 13-21시<br>7번: 13-20시<br>8번: 15-19시"
+                is_sun_hol = info['is_holiday'] or info['is_sun']
+                hr_range = range(13, 20) if is_sun_hol else range(13, 21)
+                
+                content_html = f"<div style='background-color:{badge_color}; border-radius:4px; margin-bottom:2px; font-size:9.5px; font-weight:800; text-align:center; padding: 2px 0; color:#333;'>{badge_label} 고정</div>"
+                content_html += "<table class='mini-table' style='margin-top:0;'><tr><th class='mini-th' style='width:34%;'>6</th><th class='mini-th' style='width:33%;'>7</th><th class='mini-th' style='width:33%;'>8</th></tr>"
+                
+                for hr_int in hr_range:
+                    is_6 = True
+                    is_7 = hr_int < (19 if is_sun_hol else 20)
+                    is_8 = 15 <= hr_int < 19
                     
-                content_html = f"""
-                <div style='background-color:{badge_color}; padding:4px; border-radius:4px; margin-top:4px;'>
-                    <div style='font-size:9.5px; font-weight:800; text-align:center; margin-bottom:2px;'>{badge_label}</div>
-                    <div style='font-size:10px; color:#555; text-align:center; line-height:1.2; letter-spacing:-0.5px;'>{summary_text}</div>
-                </div>
-                """
+                    cls_6 = "cell-booked" if is_6 else "cell-empty"
+                    cls_7 = "cell-booked" if is_7 else "cell-empty"
+                    cls_8 = "cell-booked" if is_8 else "cell-empty"
+                    
+                    txt_color = "#ffffff" if is_6 else "#666666"
+                    font_weight = "bold" if is_6 else "normal"
+                    
+                    content_html += f"<tr>"
+                    content_html += f"<td class='mini-td {cls_6}' style='color:{txt_color}; font-weight:{font_weight}; text-align:center; font-size: 8.5px; height: 10px; padding: 0;'>{hr_int}</td>"
+                    content_html += f"<td class='mini-td {cls_7}' style='height: 10px; padding: 0;'></td>"
+                    content_html += f"<td class='mini-td {cls_8}' style='height: 10px; padding: 0;'></td>"
+                    content_html += f"</tr>"
+                content_html += "</table>"
                 
             calendar_html += f"<td class='{td_class}'>{date_display_html}{content_html}</td>"
         calendar_html += "</tr>"
