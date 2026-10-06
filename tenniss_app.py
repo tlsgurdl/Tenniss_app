@@ -126,7 +126,7 @@ def init_connection():
 sheet, sheet_schedule = init_connection()
 
 # ==========================================
-# 📅 2. 스케줄 및 시간 데이터 파싱 (버그 수정)
+# 📅 2. 스케줄 및 시간 데이터 파싱
 # ==========================================
 KST = timezone(timedelta(hours=9))
 today_dt = datetime.now(KST)
@@ -164,11 +164,14 @@ if sheet_schedule:
                         closure_text = c_txt
                         break
             
-            # 2) 휴관이 아니면 커스텀 코트(7, 8번) 확인
+            # 2) 휴관이 아니면 커스텀 코트(6, 7, 8번) 확인 [수정됨: 6번 코트 파싱 추가]
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
                     courts = list(re.sub(r'\D', '', val))
+                    if '6' in courts: 
+                        day_data[str(h)].append('6')
+                        has_extra_courts = True
                     if '7' in courts: 
                         day_data[str(h)].append('7')
                         has_extra_courts = True
@@ -199,10 +202,9 @@ if sheet_schedule:
                 monthly_schedule_dict[date_val]['custom_data'] = day_data
                 monthly_schedule_dict[date_val]['show_fixed'] = False 
 
-            # 4) [버그 수정] 오늘 날짜인 경우 코트 현황판 덮어쓰기 로직
+            # 4) 오늘 날짜인 경우 코트 현황판 덮어쓰기 로직
             if date_val == today_str:
                 if closure_text:
-                    # 💡 완전히 휴관/대회인 경우 오늘 전체 스케줄을 배열을 비워서 날려버림
                     for h in range(13, 23):
                         ui_time = time_slots_mapping[f"{h}:00"]
                         today_schedule[ui_time] = []
@@ -224,7 +226,7 @@ if sheet_schedule:
 available_time_slots = [t for t, courts in today_schedule.items() if len(courts) > 0]
 
 # ==========================================
-# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어 (달력 상태 포함)
+# 📝 3. 데이터 읽기/쓰기 및 세션 상태 제어
 # ==========================================
 if "clear_input" not in st.session_state:
     st.session_state.clear_input = False
@@ -376,7 +378,7 @@ with tab1:
     # --- [현황판] ---
     st.subheader("🚥 실시간 코트 현황판")
     if not available_time_slots:
-        st.warning("⚠️ 오늘 예약된 코트가 없습니다.")
+        st.warning("⚠️️ 오늘 예약된 코트가 없습니다.")
     else:
         if not current_db.empty and '참석시간' in current_db.columns:
             attendance_counts = current_db['참석시간'].value_counts().to_dict()
@@ -479,7 +481,7 @@ with tab2:
         
         .mini-table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 3px; table-layout: fixed;}
         .mini-th { font-size: 9px; border: 1px solid #ccc; background-color: #f0f0f0; padding: 0; color: #555; white-space: nowrap;}
-        .mini-td { font-size: 9px; border: 1px solid #ccc; padding: 0; height: 11px; white-space: nowrap; word-break: keep-all; letter-spacing: -0.5px;}
+        .mini-td { font-size: 10px; border: 1px solid #ccc; padding: 0; height: 12px; white-space: nowrap; word-break: keep-all; letter-spacing: -0.5px;}
         .cell-booked { background-color: #4CAF50; }
         .cell-empty { background-color: #fafafa; }
         
@@ -530,12 +532,23 @@ with tab2:
             if info['closure']:
                 content_html = f"<span class='closure-badge'>{info['closure']}</span>"
             
+            # [수정됨: 6번 코트 반영 및 헤더 변경 (시 -> 6)]
             elif info['show_custom']: 
-                content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:36%;'>시</th><th class='mini-th' style='width:32%;'>7</th><th class='mini-th' style='width:32%;'>8</th></tr>"
+                content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:34%;'>6</th><th class='mini-th' style='width:33%;'>7</th><th class='mini-th' style='width:33%;'>8</th></tr>"
                 for hr in ['18', '19', '20', '21', '22']: 
+                    cls_6 = "cell-booked" if '6' in info['custom_data'][hr] else "cell-empty"
                     cls_7 = "cell-booked" if '7' in info['custom_data'][hr] else "cell-empty"
                     cls_8 = "cell-booked" if '8' in info['custom_data'][hr] else "cell-empty"
-                    content_html += f"<tr><td class='mini-td' style='background-color:#f9f9f9; color:#666;'>{hr}</td><td class='mini-td {cls_7}'></td><td class='mini-td {cls_8}'></td></tr>"
+                    
+                    # 6번 코트 칸에 시간을 표시하되, 예약 여부(초록 배경)에 따라 글씨 색상을 조정합니다.
+                    txt_color = "#ffffff" if '6' in info['custom_data'][hr] else "#666666"
+                    font_weight = "bold" if '6' in info['custom_data'][hr] else "normal"
+                    
+                    content_html += f"<tr>"
+                    content_html += f"<td class='mini-td {cls_6}' style='color:{txt_color}; font-weight:{font_weight}; text-align:center;'>{hr}</td>"
+                    content_html += f"<td class='mini-td {cls_7}'></td>"
+                    content_html += f"<td class='mini-td {cls_8}'></td>"
+                    content_html += f"</tr>"
                 content_html += "</table>"
                 
             elif info['show_fixed']:
