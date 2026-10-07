@@ -39,61 +39,59 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 막대(Segmented Control) 모바일 최강제 커스텀
+       🚀 [버전 호환성 100%] 커스텀 버튼 시간바 UI 
        ========================================= */
-    div[data-testid="stSegmentedControl"] {
-        width: 100% !important;
-    }
-    /* 모바일 환경에서 절대 줄바꿈 되지 않도록 1줄 고정 */
-    div[data-testid="stSegmentedControl"] > div {
-        display: flex !important;
-        flex-wrap: nowrap !important; 
-        width: 100% !important;
-        background-color: #f1f3f5 !important;
-        border: 1px solid #999 !important;
-        border-radius: 4px !important;
-        padding: 0 !important;
+    /* time-bar-wrapper 바로 밑에 생성되는 컬럼들을 가로로 묶고 여백 제거 */
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
         gap: 0 !important;
     }
-    /* 버튼 1칸의 비율 균등 분할 및 모바일 축소 허용 */
-    div[data-testid="stSegmentedControl"] label {
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] div[data-testid="column"] {
+        min-width: 0 !important;
         flex: 1 1 0% !important;
-        min-width: 0 !important; /* 글자가 없어도 비율 유지 */
-        border-right: 1px solid #ccc !important;
+    }
+    /* 각 버튼들을 막대 블록처럼 깎아서 조립 */
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button {
+        width: 100% !important;
         border-radius: 0 !important;
-        margin: 0 !important;
+        border: none !important;
+        border-top: 1px solid #ced4da !important;
+        border-bottom: 1px solid #ced4da !important;
+        border-right: 1px solid #ced4da !important;
+        height: 40px !important;
+        min-height: 40px !important;
         padding: 0 !important;
-        height: 35px !important;
-        cursor: pointer !important;
-        display: block !important;
+        margin: 0 !important;
+        transition: background-color 0.1s !important;
     }
-    div[data-testid="stSegmentedControl"] label:last-child {
-        border-right: none !important;
+    /* 첫 번째, 마지막 블록은 둥글게 처리 */
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] div[data-testid="column"]:first-child button {
+        border-left: 1px solid #ced4da !important;
+        border-top-left-radius: 6px !important;
+        border-bottom-left-radius: 6px !important;
     }
-    
-    /* 💥 가장 중요: 내부에 생성되는 마크다운(글씨) 컨테이너 완전 삭제 */
-    div[data-testid="stSegmentedControl"] label div[data-testid="stMarkdownContainer"],
-    div[data-testid="stSegmentedControl"] label span,
-    div[data-testid="stSegmentedControl"] label p {
-        display: none !important; 
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] div[data-testid="column"]:last-child button {
+        border-top-right-radius: 6px !important;
+        border-bottom-right-radius: 6px !important;
     }
-    
-    /* 🔥 선택(체크)되었을 때 박스 전체 배경 초록색 채우기 */
-    div[data-testid="stSegmentedControl"] label:has(input:checked),
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] {
+    /* 버튼 내부 텍스트 완전 은폐 */
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button p {
+        display: none !important;
+    }
+    /* [미선택] 상태 배경 */
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
+        background-color: #f1f3f5 !important;
+    }
+    /* [선택됨] 상태 초록색 배경 (테두리까지 완벽하게 채움) */
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #4CAF50 !important;
+        border-color: #4CAF50 !important;
     }
-    
-    /* 내부 레이어 투명화 (테두리만 칠해지는 현상 방지) */
-    div[data-testid="stSegmentedControl"] label * {
-        background-color: transparent !important;
-        box-shadow: none !important;
-    }
-    
-    /* 포커스시 나타나는 붉은색 외곽선 차단 */
-    div[data-testid="stSegmentedControl"] label:focus,
-    div[data-testid="stSegmentedControl"] label:focus-within {
+    /* 터치 및 포커스시 붉은 테두리 현상 제거 */
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button:focus,
+    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button:active {
         outline: none !important;
+        box-shadow: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -178,7 +176,6 @@ today_str = today_dt.strftime('%Y-%m-%d')
 today_schedule = {} 
 monthly_schedule_dict = {} 
 
-# 주말/공휴일 오늘 스케줄 초기 세팅
 fixed_today = get_weekend_schedule(today_dt)
 for h in range(13, 23):
     ui_time = time_slots_mapping[f"{h}:00"]
@@ -276,9 +273,14 @@ if "view_year" not in st.session_state:
 if "view_month" not in st.session_state:
     st.session_state.view_month = today_dt.month
 
+# 선택된 시간을 저장하는 핵심 세션 변수 추가
+if "selected_times_set" not in st.session_state:
+    st.session_state.selected_times_set = set()
+
 if st.session_state.clear_input:
     if "pill_member" in st.session_state:
         st.session_state.pill_member = None
+    st.session_state.selected_times_set.clear() # 취소/등록 완료 시 선택 내역 초기화
     st.session_state.clear_input = False
 
 def fetch_data():
@@ -364,60 +366,57 @@ with tab1:
             st.markdown("---")
             st.markdown("**2️⃣ 참석 시간 선택** (해당 시간 게이지 빈칸을 터치하여 채워주세요 👆)")
             
-            selected_times = []
             if available_time_slots:
                 
-                # 📏 HTML 커스텀 눈금자(Ruler) 생성 (막대바의 비율과 완벽 동일한 FlexBox 매칭)
+                # 📏 HTML 커스텀 눈금자(Ruler) - (막대바의 비율과 완벽 동일한 FlexBox 매칭)
                 ruler_html = '<div style="display: flex; flex-wrap: nowrap; width: 100%; pointer-events: none; margin-top: 25px; margin-bottom: 2px;">'
-                
                 for time_slot in available_time_slots:
                     start_hr = time_slot.split(":")[0]
                     ruler_html += f'<div style="flex: 1 1 0%; min-width: 0; border-left: 2px solid #777; height: 10px; position: relative; box-sizing: border-box;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
                 
-                # 마지막 종료 눈금
                 last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
                 ruler_html += f'<div style="width: 2px; height: 10px; background-color: #777; position: relative;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
                 ruler_html += '</div>'
-                
                 st.markdown(ruler_html, unsafe_allow_html=True)
                 
-                # CSS가 완벽히 잡아주므로 포맷 변경(꼼수) 없이 옵션 리스트 원본 그대로 삽입
-                try:
-                    raw_selection = st.segmented_control(
-                        "시간 선택 바",
-                        options=available_time_slots,
-                        selection_mode="multi",
-                        label_visibility="collapsed"
-                    )
-                    selected_times = list(raw_selection) if raw_selection else []
-                except AttributeError:
-                    selected_times = st.multiselect(
-                        "시간 선택 바",
-                        options=available_time_slots,
-                        label_visibility="collapsed"
-                    )
+                # 🔥 Streamlit의 어떤 버전에서도 동작하는 "버튼 결합형" 가짜 게이지 바 생성
+                st.markdown('<div id="time-bar-wrapper"></div>', unsafe_allow_html=True)
                 
-                if selected_times:
-                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
+                cols = st.columns(len(available_time_slots))
+                for i, time_slot in enumerate(available_time_slots):
+                    is_selected = time_slot in st.session_state.selected_times_set
+                    # 선택 여부에 따라 버튼 속성(Primary/Secondary) 변경
+                    b_type = "primary" if is_selected else "secondary"
+                    with cols[i]:
+                        if st.button("ㅤ", key=f"bar_{time_slot}", type=b_type, use_container_width=True):
+                            if is_selected:
+                                st.session_state.selected_times_set.remove(time_slot)
+                            else:
+                                st.session_state.selected_times_set.add(time_slot)
+                            st.rerun()
+
+                valid_selections = [t for t in available_time_slots if t in st.session_state.selected_times_set]
+                
+                if valid_selections:
+                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(valid_selections)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
                     st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>원하는 시간을 모두 탭 하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
-            # 버튼 영역 (2단 배열)
             col_reg, col_cncl = st.columns(2)
             with col_reg:
                 if st.button("🚀 등록하기", use_container_width=True, type="primary"):
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
-                    elif not selected_times:
+                    elif not valid_selections:
                         st.warning("⚠️ 참석하실 시간을 선택해 주세요!")
                     else:
                         if not current_db.empty and user_name in current_db['이름'].values:
                             st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
                         else:
                             with st.spinner("기록 중..."):
-                                add_attendance(user_name, sorted(selected_times))
+                                add_attendance(user_name, sorted(valid_selections))
                                 get_all_members.clear() 
                                 st.session_state.clear_input = True 
                                 st.success(f"🎉 {user_name}님 등록 완료!")
