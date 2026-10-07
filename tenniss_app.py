@@ -56,15 +56,15 @@ st.markdown("""
         gap: 0 !important;
         overflow: hidden !important;
     }
-    /* 각 칸의 비율 동일 설정 및 정렬 (높이 20% 확대 적용) */
+    /* 각 칸의 비율 동일 설정 및 정렬 (높이 20% 추가 확대 적용) */
     div[data-testid="stSegmentedControl"] label {
         flex: 1 1 0% !important;
         min-width: 0 !important;
         border-right: 1px solid #ccc !important;
         border-radius: 0 !important;
         margin: 0 !important;
-        padding: 0 0 0 6px !important; /* 눈금 효과를 위해 왼쪽으로 바짝 붙임 */
-        height: 55px !important; /* 기존 45px -> 55px로 터치 영역 20% 확대 */
+        padding: 0 0 0 8px !important; /* 왼쪽으로 바짝 붙임 */
+        height: 66px !important; /* 기존 55px -> 66px로 터치 영역 20% 확대 */
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
@@ -78,10 +78,11 @@ st.markdown("""
     /* 시간 글자 디자인 (폰트 크기 확대 적용) */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 18px !important; /* 16px -> 18px 가시성 강화 */
+        font-size: 20px !important; /* 18px -> 20px 가시성 강화 */
         font-weight: 900 !important;
         color: #666 !important;
         margin: 0 !important;
+        line-height: 1.1 !important;
     }
     
     /* 🔥 선택 시 박스 내부 녹색 채우기 및 글자색 흰색 변환 */
@@ -377,7 +378,7 @@ with tab1:
             selected_times = []
             if available_time_slots:
                 try:
-                    # ✨ 물결 표시(~) 및 마지막 칸에만 종료 시간 표시 로직 추가
+                    # ✨ 물결 표시(~) 및 마지막 칸에만 종료 시간 표시
                     def format_time_label(x):
                         start_hr = x.split(":")[0]
                         if x == available_time_slots[-1]:
