@@ -39,74 +39,61 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 막대(Segmented Control) 모바일 최적화 커스텀
+       🎚️ 막대(Segmented Control) 모바일 최강제 커스텀
        ========================================= */
-    /* 1. 막대바 영역 가로 꽉 차게 확장 및 모바일 줄바꿈 원천 차단 */
     div[data-testid="stSegmentedControl"] {
         width: 100% !important;
-        display: flex !important;
     }
+    /* 모바일 환경에서 절대 줄바꿈 되지 않도록 1줄 고정 */
     div[data-testid="stSegmentedControl"] > div {
-        width: 100% !important;
         display: flex !important;
-        flex-wrap: nowrap !important; /* 모바일 줄바꿈 방지 */
+        flex-wrap: nowrap !important; 
+        width: 100% !important;
         background-color: #f1f3f5 !important;
-        border: 1px solid #ced4da !important;
+        border: 1px solid #999 !important;
         border-radius: 4px !important;
         padding: 0 !important;
         gap: 0 !important;
     }
-    /* 2. 각 버튼(label)을 눈금자와 똑같이 균등 분할 및 강제 높이 지정 */
-    div[data-testid="stSegmentedControl"] label,
-    div[data-testid="stSegmentedControl"] button {
+    /* 버튼 1칸의 비율 균등 분할 및 모바일 축소 허용 */
+    div[data-testid="stSegmentedControl"] label {
         flex: 1 1 0% !important;
-        border-right: 1px solid #ced4da !important;
+        min-width: 0 !important; /* 글자가 없어도 비율 유지 */
+        border-right: 1px solid #ccc !important;
         border-radius: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
-        min-height: 40px !important;
-        height: 40px !important;
-        min-width: 0 !important; /* 좁은 화면에서 칸이 밀리는 현상 방지 */
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background-color: transparent !important;
-        transition: background-color 0.1s ease !important;
-        box-sizing: border-box !important;
+        height: 35px !important;
         cursor: pointer !important;
-        overflow: hidden !important;
+        display: block !important;
     }
-    div[data-testid="stSegmentedControl"] label:last-child,
-    div[data-testid="stSegmentedControl"] button:last-child {
+    div[data-testid="stSegmentedControl"] label:last-child {
         border-right: none !important;
     }
-    /* 3. 내부 글씨 완전 제거 (공간 자체를 차지하지 못하게 아예 없앰) */
-    div[data-testid="stSegmentedControl"] p,
-    div[data-testid="stSegmentedControl"] span,
-    div[data-testid="stSegmentedControl"] span[data-baseweb="tag"] {
+    
+    /* 💥 가장 중요: 내부에 생성되는 마크다운(글씨) 컨테이너 완전 삭제 */
+    div[data-testid="stSegmentedControl"] label div[data-testid="stMarkdownContainer"],
+    div[data-testid="stSegmentedControl"] label span,
+    div[data-testid="stSegmentedControl"] label p {
         display: none !important; 
-        font-size: 0px !important;
-        color: transparent !important;
     }
-    /* 4. 🔥 선택되었을 때 초록색 게이지 꽉 채우기 (어떤 구조에서든 배경이 칠해지도록 다중 지정) */
-    div[data-testid="stSegmentedControl"] label[data-checked="true"],
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] > div,
+    
+    /* 🔥 선택(체크)되었을 때 박스 전체 배경 초록색 채우기 */
     div[data-testid="stSegmentedControl"] label:has(input:checked),
-    div[data-testid="stSegmentedControl"] label:has(input:checked) > div,
-    div[data-testid="stSegmentedControl"] input:checked + div,
-    div[data-testid="stSegmentedControl"] input:checked ~ div,
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"],
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] {
         background-color: #4CAF50 !important;
-        border-color: transparent !important;
     }
-    /* 5. 포커스 시 나타나는 기본 외곽선 완전 차단 */
-    div[data-testid="stSegmentedControl"] label:focus,
-    div[data-testid="stSegmentedControl"] label:focus-within,
-    div[data-testid="stSegmentedControl"] button:focus,
-    div[data-testid="stSegmentedControl"] input:focus {
-        outline: none !important;
+    
+    /* 내부 레이어 투명화 (테두리만 칠해지는 현상 방지) */
+    div[data-testid="stSegmentedControl"] label * {
+        background-color: transparent !important;
         box-shadow: none !important;
+    }
+    
+    /* 포커스시 나타나는 붉은색 외곽선 차단 */
+    div[data-testid="stSegmentedControl"] label:focus,
+    div[data-testid="stSegmentedControl"] label:focus-within {
+        outline: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -380,12 +367,12 @@ with tab1:
             selected_times = []
             if available_time_slots:
                 
-                # 📏 HTML 커스텀 눈금자(Ruler) 생성 (flex: 1 1 0%로 완벽 분할 매칭)
-                ruler_html = '<div style="display: flex; width: 100%; pointer-events: none; margin-top: 25px; margin-bottom: 2px;">'
+                # 📏 HTML 커스텀 눈금자(Ruler) 생성 (막대바의 비율과 완벽 동일한 FlexBox 매칭)
+                ruler_html = '<div style="display: flex; flex-wrap: nowrap; width: 100%; pointer-events: none; margin-top: 25px; margin-bottom: 2px;">'
                 
                 for time_slot in available_time_slots:
                     start_hr = time_slot.split(":")[0]
-                    ruler_html += f'<div style="flex: 1 1 0%; border-left: 2px solid #777; height: 10px; position: relative; box-sizing: border-box;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
+                    ruler_html += f'<div style="flex: 1 1 0%; min-width: 0; border-left: 2px solid #777; height: 10px; position: relative; box-sizing: border-box;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
                 
                 # 마지막 종료 눈금
                 last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
@@ -394,8 +381,8 @@ with tab1:
                 
                 st.markdown(ruler_html, unsafe_allow_html=True)
                 
+                # CSS가 완벽히 잡아주므로 포맷 변경(꼼수) 없이 옵션 리스트 원본 그대로 삽입
                 try:
-                    # 원본 데이터를 그대로 렌더링하고, 글자 지우기는 완벽하게 CSS가 담당함
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -404,18 +391,16 @@ with tab1:
                     )
                     selected_times = list(raw_selection) if raw_selection else []
                 except AttributeError:
-                    # 구버전 Fallback
                     selected_times = st.multiselect(
                         "시간 선택 바",
                         options=available_time_slots,
-                        format_func=lambda x: f"{x.split(':')[0]}~{x.split(' ~ ')[1].split(':')[0]}시",
                         label_visibility="collapsed"
                     )
                 
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>원하는 시간을 모두 터치하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>원하는 시간을 모두 탭 하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
