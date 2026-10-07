@@ -39,59 +39,36 @@ st.markdown("""
     }
     
     /* =========================================
-       🚀 [버전 호환성 100%] 커스텀 버튼 시간바 UI 
+       🎚️ 슬라이더(시간바) 드래그 핸들 UI 커스텀
        ========================================= */
-    /* time-bar-wrapper 바로 밑에 생성되는 컬럼들을 가로로 묶고 여백 제거 */
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] {
-        flex-wrap: nowrap !important;
-        gap: 0 !important;
+    /* 슬라이더 동그라미(핸들) 디자인 변경: 크기 키우고 테두리, 그림자 추가 */
+    div[data-baseweb="slider"] [role="slider"] {
+        height: 26px !important;
+        width: 26px !important;
+        border-radius: 50% !important;
+        background-color: #4CAF50 !important; /* 초록색 포인트 */
+        border: 3px solid #ffffff !important; /* 흰색 테두리 */
+        box-shadow: 0px 3px 6px rgba(0,0,0,0.4) !important; /* 입체감 그림자 */
+        transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+        cursor: grab !important;
     }
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] div[data-testid="column"] {
-        min-width: 0 !important;
-        flex: 1 1 0% !important;
+    /* 핸들 터치/마우스 오버 시 애니메이션 효과 */
+    div[data-baseweb="slider"] [role="slider"]:hover,
+    div[data-baseweb="slider"] [role="slider"]:active {
+        transform: scale(1.2) !important; /* 살짝 커짐 */
+        box-shadow: 0px 5px 10px rgba(0,0,0,0.5) !important;
+        cursor: grabbing !important;
     }
-    /* 각 버튼들을 막대 블록처럼 깎아서 조립 */
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button {
-        width: 100% !important;
-        border-radius: 0 !important;
-        border: none !important;
-        border-top: 1px solid #ced4da !important;
-        border-bottom: 1px solid #ced4da !important;
-        border-right: 1px solid #ced4da !important;
-        height: 40px !important;
-        min-height: 40px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        transition: background-color 0.1s !important;
+    /* 슬라이더 눈금 텍스트 강조 */
+    div[data-testid="stTickBar"] div {
+        font-weight: 800 !important;
+        font-size: 13.5px !important;
+        color: #333333 !important;
     }
-    /* 첫 번째, 마지막 블록은 둥글게 처리 */
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] div[data-testid="column"]:first-child button {
-        border-left: 1px solid #ced4da !important;
-        border-top-left-radius: 6px !important;
-        border-bottom-left-radius: 6px !important;
-    }
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] div[data-testid="column"]:last-child button {
-        border-top-right-radius: 6px !important;
-        border-bottom-right-radius: 6px !important;
-    }
-    /* 버튼 내부 텍스트 완전 은폐 */
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button p {
-        display: none !important;
-    }
-    /* [미선택] 상태 배경 */
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-        background-color: #f1f3f5 !important;
-    }
-    /* [선택됨] 상태 초록색 배경 (테두리까지 완벽하게 채움) */
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-        background-color: #4CAF50 !important;
-        border-color: #4CAF50 !important;
-    }
-    /* 터치 및 포커스시 붉은 테두리 현상 제거 */
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button:focus,
-    div.element-container:has(#time-bar-wrapper) + div[data-testid="stHorizontalBlock"] button:active {
-        outline: none !important;
-        box-shadow: none !important;
+    /* 선택된 범위(Track) 텍스트 숨김 (불필요한 글씨 방지) */
+    div[data-testid="stThumbValue"] {
+        font-weight: bold !important;
+        color: #4CAF50 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -176,6 +153,7 @@ today_str = today_dt.strftime('%Y-%m-%d')
 today_schedule = {} 
 monthly_schedule_dict = {} 
 
+# 주말/공휴일 오늘 스케줄 초기 세팅
 fixed_today = get_weekend_schedule(today_dt)
 for h in range(13, 23):
     ui_time = time_slots_mapping[f"{h}:00"]
@@ -195,6 +173,7 @@ if sheet_schedule:
             has_extra_courts = False
             day_data = {str(h): [] for h in range(18, 23)}
             
+            # 1) 전체 휴관/대회 여부 체크
             for h in range(13, 23):
                 val = str(row.get(f"{h}:00", "")).strip()
                 if val:
@@ -203,6 +182,7 @@ if sheet_schedule:
                         closure_text = c_txt
                         break
             
+            # 2) 휴관이 아니면 커스텀 코트 확인
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
@@ -217,6 +197,7 @@ if sheet_schedule:
                         day_data[str(h)].append('8')
                         has_extra_courts = True
                         
+            # 3) 달력 렌더링용 dict 에 저장
             if date_val not in monthly_schedule_dict:
                 try:
                     dt_obj = datetime.strptime(date_val, '%Y-%m-%d').date()
@@ -239,6 +220,7 @@ if sheet_schedule:
                 monthly_schedule_dict[date_val]['custom_data'] = day_data
                 monthly_schedule_dict[date_val]['show_fixed'] = False 
 
+            # 4) 오늘 날짜인 경우 코트 현황판 덮어쓰기 로직
             if date_val == today_str:
                 if closure_text:
                     for h in range(13, 23):
@@ -273,14 +255,9 @@ if "view_year" not in st.session_state:
 if "view_month" not in st.session_state:
     st.session_state.view_month = today_dt.month
 
-# 선택된 시간을 저장하는 핵심 세션 변수 추가
-if "selected_times_set" not in st.session_state:
-    st.session_state.selected_times_set = set()
-
 if st.session_state.clear_input:
     if "pill_member" in st.session_state:
         st.session_state.pill_member = None
-    st.session_state.selected_times_set.clear() # 취소/등록 완료 시 선택 내역 초기화
     st.session_state.clear_input = False
 
 def fetch_data():
@@ -364,59 +341,55 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (해당 시간 게이지 빈칸을 터치하여 채워주세요 👆)")
+            st.markdown("**2️⃣ 참석 시간 선택** (양쪽 동그라미를 드래그하여 구간을 선택하세요 ↔️)")
             
+            selected_times = []
             if available_time_slots:
+                # 시작 시간들과 마지막 종료 시간 추출
+                start_times = [slot.split(" ~ ")[0] for slot in available_time_slots]
+                last_end = available_time_slots[-1].split(" ~ ")[1].split(" ")[0] # (심야반) 텍스트 제거
+                time_markers = start_times + [last_end]
                 
-                # 📏 HTML 커스텀 눈금자(Ruler) - (막대바의 비율과 완벽 동일한 FlexBox 매칭)
-                ruler_html = '<div style="display: flex; flex-wrap: nowrap; width: 100%; pointer-events: none; margin-top: 25px; margin-bottom: 2px;">'
-                for time_slot in available_time_slots:
-                    start_hr = time_slot.split(":")[0]
-                    ruler_html += f'<div style="flex: 1 1 0%; min-width: 0; border-left: 2px solid #777; height: 10px; position: relative; box-sizing: border-box;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
+                # 시각적으로 개선된 슬라이더 렌더링
+                selected_range = st.select_slider(
+                    "시간 선택 바",
+                    options=time_markers,
+                    value=(time_markers[0], time_markers[-1]), # 처음~끝 기본 선택
+                    label_visibility="collapsed"
+                )
                 
-                last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
-                ruler_html += f'<div style="width: 2px; height: 10px; background-color: #777; position: relative;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
-                ruler_html += '</div>'
-                st.markdown(ruler_html, unsafe_allow_html=True)
+                start_idx = time_markers.index(selected_range[0])
+                end_idx = time_markers.index(selected_range[1])
                 
-                # 🔥 Streamlit의 어떤 버전에서도 동작하는 "버튼 결합형" 가짜 게이지 바 생성
-                st.markdown('<div id="time-bar-wrapper"></div>', unsafe_allow_html=True)
-                
-                cols = st.columns(len(available_time_slots))
-                for i, time_slot in enumerate(available_time_slots):
-                    is_selected = time_slot in st.session_state.selected_times_set
-                    # 선택 여부에 따라 버튼 속성(Primary/Secondary) 변경
-                    b_type = "primary" if is_selected else "secondary"
-                    with cols[i]:
-                        if st.button("ㅤ", key=f"bar_{time_slot}", type=b_type, use_container_width=True):
-                            if is_selected:
-                                st.session_state.selected_times_set.remove(time_slot)
-                            else:
-                                st.session_state.selected_times_set.add(time_slot)
-                            st.rerun()
-
-                valid_selections = [t for t in available_time_slots if t in st.session_state.selected_times_set]
-                
-                if valid_selections:
-                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(valid_selections)}시간 선택됨</div>", unsafe_allow_html=True)
+                if start_idx < end_idx:
+                    for i in range(start_idx, end_idx):
+                        marker = time_markers[i]
+                        for slot in available_time_slots:
+                            if slot.startswith(marker + " ~"):
+                                selected_times.append(slot)
+                                break
+                                
+                if start_idx == end_idx:
+                    st.warning("동그라미를 좌우로 드래그하여 최소 1시간 이상 선택해 주세요.")
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>원하는 시간을 모두 탭 하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; font-size: 15px; margin: 10px 0;'>✅ 선택된 구간: {selected_range[0]} ~ {selected_range[1]}</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
+            # 버튼 영역 (2단 배열)
             col_reg, col_cncl = st.columns(2)
             with col_reg:
                 if st.button("🚀 등록하기", use_container_width=True, type="primary"):
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
-                    elif not valid_selections:
+                    elif not selected_times:
                         st.warning("⚠️ 참석하실 시간을 선택해 주세요!")
                     else:
                         if not current_db.empty and user_name in current_db['이름'].values:
                             st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
                         else:
                             with st.spinner("기록 중..."):
-                                add_attendance(user_name, sorted(valid_selections))
+                                add_attendance(user_name, sorted(selected_times))
                                 get_all_members.clear() 
                                 st.session_state.clear_input = True 
                                 st.success(f"🎉 {user_name}님 등록 완료!")
