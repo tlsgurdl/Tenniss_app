@@ -39,36 +39,55 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 슬라이더(시간바) 드래그 핸들 UI 커스텀
+       🎚️ 슬라이더(시간바) 강력 커스텀 (굵은 선 & 예쁜 핸들)
        ========================================= */
-    /* 슬라이더 동그라미(핸들) 디자인 변경: 크기 키우고 테두리, 그림자 추가 */
+    /* 1. 슬라이더 트랙(선) 굵기 강제 확대 */
+    div[data-baseweb="slider"] [data-testid="stTickBar"] ~ div,
+    div[data-baseweb="slider"] [data-testid="stTickBar"] ~ div > div {
+        height: 10px !important; /* 선 굵기 키움 */
+        border-radius: 5px !important;
+    }
+    
+    /* 2. 드래그 핸들(동그라미) 디자인 (테니스공 느낌) */
     div[data-baseweb="slider"] [role="slider"] {
-        height: 26px !important;
-        width: 26px !important;
+        height: 28px !important;
+        width: 28px !important;
         border-radius: 50% !important;
-        background-color: #4CAF50 !important; /* 초록색 포인트 */
+        background-color: #4CAF50 !important; /* 메인 초록색 */
         border: 3px solid #ffffff !important; /* 흰색 테두리 */
-        box-shadow: 0px 3px 6px rgba(0,0,0,0.4) !important; /* 입체감 그림자 */
+        box-shadow: 0px 4px 8px rgba(0,0,0,0.4) !important; /* 입체 그림자 */
         transition: transform 0.15s ease, box-shadow 0.15s ease !important;
         cursor: grab !important;
     }
-    /* 핸들 터치/마우스 오버 시 애니메이션 효과 */
+    /* 터치/드래그 할 때 크기 살짝 커지는 애니메이션 */
     div[data-baseweb="slider"] [role="slider"]:hover,
     div[data-baseweb="slider"] [role="slider"]:active {
-        transform: scale(1.2) !important; /* 살짝 커짐 */
-        box-shadow: 0px 5px 10px rgba(0,0,0,0.5) !important;
+        transform: scale(1.15) !important;
+        box-shadow: 0px 6px 12px rgba(0,0,0,0.5) !important;
         cursor: grabbing !important;
     }
-    /* 슬라이더 눈금 텍스트 강조 */
-    div[data-testid="stTickBar"] div {
-        font-weight: 800 !important;
-        font-size: 13.5px !important;
-        color: #333333 !important;
+    
+    /* 3. 회색선 밑 시간(눈금) 항상 진하게 표시 */
+    div[data-testid="stTickBar"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
-    /* 선택된 범위(Track) 텍스트 숨김 (불필요한 글씨 방지) */
+    div[data-testid="stTickBar"] div {
+        color: #555555 !important;
+        font-weight: 900 !important;
+        font-size: 14.5px !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* 4. 선택 범위 둥둥 떠있는 글씨 (초록색 강조) */
     div[data-testid="stThumbValue"] {
-        font-weight: bold !important;
+        font-weight: 900 !important;
+        font-size: 15px !important;
         color: #4CAF50 !important;
+        margin-bottom: 3px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -173,7 +192,6 @@ if sheet_schedule:
             has_extra_courts = False
             day_data = {str(h): [] for h in range(18, 23)}
             
-            # 1) 전체 휴관/대회 여부 체크
             for h in range(13, 23):
                 val = str(row.get(f"{h}:00", "")).strip()
                 if val:
@@ -182,7 +200,6 @@ if sheet_schedule:
                         closure_text = c_txt
                         break
             
-            # 2) 휴관이 아니면 커스텀 코트 확인
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
@@ -197,7 +214,6 @@ if sheet_schedule:
                         day_data[str(h)].append('8')
                         has_extra_courts = True
                         
-            # 3) 달력 렌더링용 dict 에 저장
             if date_val not in monthly_schedule_dict:
                 try:
                     dt_obj = datetime.strptime(date_val, '%Y-%m-%d').date()
@@ -220,7 +236,6 @@ if sheet_schedule:
                 monthly_schedule_dict[date_val]['custom_data'] = day_data
                 monthly_schedule_dict[date_val]['show_fixed'] = False 
 
-            # 4) 오늘 날짜인 경우 코트 현황판 덮어쓰기 로직
             if date_val == today_str:
                 if closure_text:
                     for h in range(13, 23):
@@ -341,16 +356,16 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (양쪽 동그라미를 드래그하여 구간을 선택하세요 ↔️)")
+            st.markdown("**2️⃣ 참석 시간 선택** (양쪽 동그라미를 드래그하여 구간을 잡아주세요 ↔️)")
             
             selected_times = []
             if available_time_slots:
-                # 시작 시간들과 마지막 종료 시간 추출
-                start_times = [slot.split(" ~ ")[0] for slot in available_time_slots]
-                last_end = available_time_slots[-1].split(" ~ ")[1].split(" ")[0] # (심야반) 텍스트 제거
+                # 💡 시간 글자를 압축하여 모바일에서도 눈금이 잘리지 않고 항상 표시되도록 조치
+                start_times = [slot.split(":")[0] for slot in available_time_slots]
+                last_end = available_time_slots[-1].split(" ~ ")[1].split(":")[0] 
                 time_markers = start_times + [last_end]
                 
-                # 시각적으로 개선된 슬라이더 렌더링
+                # 시각적으로 대폭 개선된 슬라이더
                 selected_range = st.select_slider(
                     "시간 선택 바",
                     options=time_markers,
@@ -361,18 +376,19 @@ with tab1:
                 start_idx = time_markers.index(selected_range[0])
                 end_idx = time_markers.index(selected_range[1])
                 
+                # 선택된 구간(숫자)을 다시 원래의 시간 슬롯(문자열)으로 완벽하게 매핑
                 if start_idx < end_idx:
                     for i in range(start_idx, end_idx):
                         marker = time_markers[i]
                         for slot in available_time_slots:
-                            if slot.startswith(marker + " ~"):
+                            if slot.startswith(marker + ":"):
                                 selected_times.append(slot)
                                 break
                                 
                 if start_idx == end_idx:
                     st.warning("동그라미를 좌우로 드래그하여 최소 1시간 이상 선택해 주세요.")
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; font-size: 15px; margin: 10px 0;'>✅ 선택된 구간: {selected_range[0]} ~ {selected_range[1]}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; font-size: 15px; margin: 10px 0;'>✅ 선택된 구간: {selected_range[0]}시 ~ {selected_range[1]}시</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
@@ -383,13 +399,13 @@ with tab1:
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
                     elif not selected_times:
-                        st.warning("⚠️ 참석하실 시간을 선택해 주세요!")
+                        st.warning("⚠️ 참석하실 시간을 드래그해서 선택해 주세요!")
                     else:
                         if not current_db.empty and user_name in current_db['이름'].values:
                             st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
                         else:
                             with st.spinner("기록 중..."):
-                                add_attendance(user_name, sorted(selected_times))
+                                add_attendance(user_name, selected_times)
                                 get_all_members.clear() 
                                 st.session_state.clear_input = True 
                                 st.success(f"🎉 {user_name}님 등록 완료!")
