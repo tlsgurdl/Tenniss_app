@@ -39,11 +39,12 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 바(Segmented Control) 오른쪽 빈공간 완벽 해결
+       🎚️ 바(Segmented Control) 모바일 완벽 최적화
        ========================================= */
     div[data-testid="stSegmentedControl"] {
         width: 100% !important;
     }
+    /* 모바일 가로 유지 (줄바꿈 방지) 및 테두리 설정 */
     div[data-testid="stSegmentedControl"] > div {
         display: flex !important;
         flex-wrap: nowrap !important; 
@@ -56,8 +57,7 @@ st.markdown("""
         overflow: hidden !important;
     }
     
-    /* 💥 핵심 해결: Streamlit이 몰래 생성하는 '투명 애니메이션 박스'나 '여백'이 
-       Flex 공간(바 1칸 넓이)을 차지하지 못하도록 라벨(label) 이외의 모든 것을 삭제 */
+    /* 💥 우측 빈 공간 버그 해결: Streamlit이 몰래 생성하는 투명 박스 삭제 */
     div[data-testid="stSegmentedControl"] > div > :not(label) {
         display: none !important;
         width: 0 !important;
@@ -65,22 +65,22 @@ st.markdown("""
         position: absolute !important;
     }
     
-    /* 각 칸의 비율 동일 설정 및 제한 해제 (가로 꽉 채우기) */
+    /* 각 칸의 비율 동일 설정 및 정렬 (높이 20% 확대 적용) */
     div[data-testid="stSegmentedControl"] label {
         flex-grow: 1 !important;
         flex-shrink: 1 !important;
         flex-basis: 0% !important;
-        max-width: none !important; /* 👈 어떤 해상도에서든 꽉 차도록 제한 해제 */
+        max-width: none !important;
         min-width: 0 !important;
         border-right: 1px solid #ccc !important;
         border-radius: 0 !important;
         margin: 0 !important;
-        padding: 0 0 0 6px !important; 
-        height: 55px !important; 
+        padding: 0 0 0 6px !important; /* 눈금 효과를 위해 왼쪽으로 바짝 붙임 */
+        height: 55px !important; /* ✨ 기존 45px -> 55px로 터치 영역 20% 확대 */
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: flex-start !important; 
+        justify-content: flex-start !important; /* 왼쪽 정렬 */
         transition: background-color 0.15s ease !important;
         box-sizing: border-box !important;
     }
@@ -88,10 +88,10 @@ st.markdown("""
         border-right: none !important;
     }
     
-    /* 시간 글자 디자인 */
+    /* 시간 글자 디자인 (폰트 크기 확대 적용) */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 18px !important; 
+        font-size: 17px !important; /* 가시성 강화 */
         font-weight: 900 !important;
         color: #666 !important;
         margin: 0 !important;
@@ -109,7 +109,10 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* Streamlit 기본 붉은 테두리 포커스 차단 */
+    /* Streamlit 기본 동작(애니메이션 배경, 붉은 테두리 등) 숨김 */
+    div[data-testid="stSegmentedControl"] div[data-baseweb="tag"] {
+        display: none !important;
+    }
     div[data-testid="stSegmentedControl"] label:focus,
     div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
@@ -386,23 +389,6 @@ with tab1:
             
             selected_times = []
             if available_time_slots:
-                
-                # 📏 HTML 커스텀 눈금자(Ruler) 생성 - CSS와 1:1 완벽 픽셀 매칭
-                num_slots = len(available_time_slots)
-                ruler_html = '<div style="display: flex; flex-wrap: nowrap; width: 100%; pointer-events: none; margin-top: 25px; margin-bottom: 2px;">'
-                
-                for i, time_slot in enumerate(available_time_slots):
-                    start_hr = time_slot.split(":")[0]
-                    # 마지막 칸일 경우 오른쪽에 종료 시간 렌더링
-                    if i == num_slots - 1:
-                        last_end_hr = time_slot.split(" ~ ")[1].split(":")[0]
-                        ruler_html += f'<div style="flex: 1 1 0%; min-width: 0; border-left: 2px solid #777; border-right: 2px solid #777; height: 10px; position: relative; box-sizing: border-box;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span><span style="position: absolute; top: -20px; right: -7px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
-                    else:
-                        ruler_html += f'<div style="flex: 1 1 0%; min-width: 0; border-left: 2px solid #777; height: 10px; position: relative; box-sizing: border-box;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
-                ruler_html += '</div>'
-                
-                st.markdown(ruler_html, unsafe_allow_html=True)
-                
                 try:
                     # ✨ 물결 표시(~) 및 마지막 칸에만 종료 시간 표시 로직
                     def format_time_label(x):
@@ -432,7 +418,7 @@ with tab1:
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 선택하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 터치하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
