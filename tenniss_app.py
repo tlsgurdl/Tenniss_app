@@ -39,55 +39,71 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 슬라이더(시간바) 강력 커스텀 (굵은 선 & 예쁜 핸들)
+       🎚️ 바(Segmented Control) 모바일 완벽 최적화
        ========================================= */
-    /* 1. 슬라이더 트랙(선) 굵기 강제 확대 */
-    div[data-baseweb="slider"] [data-testid="stTickBar"] ~ div,
-    div[data-baseweb="slider"] [data-testid="stTickBar"] ~ div > div {
-        height: 10px !important; /* 선 굵기 키움 */
-        border-radius: 5px !important;
+    div[data-testid="stSegmentedControl"] {
+        width: 100% !important;
     }
-    
-    /* 2. 드래그 핸들(동그라미) 디자인 (테니스공 느낌) */
-    div[data-baseweb="slider"] [role="slider"] {
-        height: 28px !important;
-        width: 28px !important;
-        border-radius: 50% !important;
-        background-color: #4CAF50 !important; /* 메인 초록색 */
-        border: 3px solid #ffffff !important; /* 흰색 테두리 */
-        box-shadow: 0px 4px 8px rgba(0,0,0,0.4) !important; /* 입체 그림자 */
-        transition: transform 0.15s ease, box-shadow 0.15s ease !important;
-        cursor: grab !important;
-    }
-    /* 터치/드래그 할 때 크기 살짝 커지는 애니메이션 */
-    div[data-baseweb="slider"] [role="slider"]:hover,
-    div[data-baseweb="slider"] [role="slider"]:active {
-        transform: scale(1.15) !important;
-        box-shadow: 0px 6px 12px rgba(0,0,0,0.5) !important;
-        cursor: grabbing !important;
-    }
-    
-    /* 3. 회색선 밑 시간(눈금) 항상 진하게 표시 */
-    div[data-testid="stTickBar"] {
+    /* 모바일 가로 유지 (줄바꿈 방지) 및 테두리 설정 */
+    div[data-testid="stSegmentedControl"] > div {
         display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+        flex-wrap: nowrap !important; 
+        width: 100% !important;
+        background-color: #f1f3f5 !important;
+        border: 2px solid #ccc !important;
+        border-radius: 8px !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        overflow: hidden !important;
     }
-    div[data-testid="stTickBar"] div {
-        color: #555555 !important;
-        font-weight: 900 !important;
-        font-size: 14.5px !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+    /* 각 칸의 비율 동일 설정 및 정렬 */
+    div[data-testid="stSegmentedControl"] label {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        border-right: 1px solid #ccc !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 0 0 6px !important; /* ✨ 눈금 효과를 위해 왼쪽으로 바짝 붙임 */
+        height: 45px !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important; /* 왼쪽 정렬 */
+        transition: background-color 0.15s ease !important;
+    }
+    div[data-testid="stSegmentedControl"] label:last-child {
+        border-right: none !important;
     }
     
-    /* 4. 선택 범위 둥둥 떠있는 글씨 (초록색 강조) */
-    div[data-testid="stThumbValue"] {
+    /* 시간 글자 디자인 */
+    div[data-testid="stSegmentedControl"] p,
+    div[data-testid="stSegmentedControl"] span {
+        font-size: 16px !important;
         font-weight: 900 !important;
-        font-size: 15px !important;
-        color: #4CAF50 !important;
-        margin-bottom: 3px !important;
+        color: #666 !important;
+        margin: 0 !important;
+    }
+    
+    /* 🔥 선택 시 박스 내부 녹색 채우기 및 글자색 흰색 변환 */
+    div[data-testid="stSegmentedControl"] label[data-checked="true"],
+    div[data-testid="stSegmentedControl"] label:has(input:checked) {
+        background-color: #4CAF50 !important;
+    }
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) p,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
+        color: #ffffff !important;
+    }
+    
+    /* Streamlit 기본 동작(애니메이션 배경, 붉은 테두리 등) 숨김 */
+    div[data-testid="stSegmentedControl"] div[data-baseweb="tag"] {
+        display: none !important;
+    }
+    div[data-testid="stSegmentedControl"] label:focus,
+    div[data-testid="stSegmentedControl"] label:focus-within {
+        outline: none !important;
+        box-shadow: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -356,39 +372,33 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (양쪽 동그라미를 드래그하여 구간을 잡아주세요 ↔️)")
+            st.markdown("**2️⃣ 참석 시간 선택** (해당 시간 칸을 자유롭게 터치하여 켜주세요 👆)")
             
             selected_times = []
             if available_time_slots:
-                # 💡 시간 글자를 압축하여 모바일에서도 눈금이 잘리지 않고 항상 표시되도록 조치
-                start_times = [slot.split(":")[0] for slot in available_time_slots]
-                last_end = available_time_slots[-1].split(" ~ ")[1].split(":")[0] 
-                time_markers = start_times + [last_end]
+                try:
+                    # ✨ 시간의 시작 부분(18, 19 등)만 추출하여 바 안의 글씨로 사용
+                    raw_selection = st.segmented_control(
+                        "시간 선택 바",
+                        options=available_time_slots,
+                        selection_mode="multi",
+                        format_func=lambda x: x.split(":")[0], 
+                        label_visibility="collapsed"
+                    )
+                    selected_times = list(raw_selection) if raw_selection else []
+                except AttributeError:
+                    # 구버전 호환용
+                    selected_times = st.multiselect(
+                        "시간 선택 바",
+                        options=available_time_slots,
+                        format_func=lambda x: f"{x.split(':')[0]}~{x.split(' ~ ')[1].split(':')[0]}시",
+                        label_visibility="collapsed"
+                    )
                 
-                # 시각적으로 대폭 개선된 슬라이더
-                selected_range = st.select_slider(
-                    "시간 선택 바",
-                    options=time_markers,
-                    value=(time_markers[0], time_markers[-1]), # 처음~끝 기본 선택
-                    label_visibility="collapsed"
-                )
-                
-                start_idx = time_markers.index(selected_range[0])
-                end_idx = time_markers.index(selected_range[1])
-                
-                # 선택된 구간(숫자)을 다시 원래의 시간 슬롯(문자열)으로 완벽하게 매핑
-                if start_idx < end_idx:
-                    for i in range(start_idx, end_idx):
-                        marker = time_markers[i]
-                        for slot in available_time_slots:
-                            if slot.startswith(marker + ":"):
-                                selected_times.append(slot)
-                                break
-                                
-                if start_idx == end_idx:
-                    st.warning("동그라미를 좌우로 드래그하여 최소 1시간 이상 선택해 주세요.")
+                if selected_times:
+                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; font-size: 15px; margin: 10px 0;'>✅ 선택된 구간: {selected_range[0]}시 ~ {selected_range[1]}시</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 선택하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
@@ -399,13 +409,13 @@ with tab1:
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
                     elif not selected_times:
-                        st.warning("⚠️ 참석하실 시간을 드래그해서 선택해 주세요!")
+                        st.warning("⚠️ 참석하실 시간을 선택해 주세요!")
                     else:
                         if not current_db.empty and user_name in current_db['이름'].values:
                             st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
                         else:
                             with st.spinner("기록 중..."):
-                                add_attendance(user_name, selected_times)
+                                add_attendance(user_name, sorted(selected_times))
                                 get_all_members.clear() 
                                 st.session_state.clear_input = True 
                                 st.success(f"🎉 {user_name}님 등록 완료!")
