@@ -31,21 +31,6 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* 체크박스 한줄 배치 시 텍스트 짤림 방지 */
-    div[data-testid="stCheckbox"] {
-        padding: 5px 2px;
-        border-radius: 6px;
-        transition: background-color 0.2s;
-    }
-    div[data-testid="stCheckbox"]:hover {
-        background-color: #f1f8e9;
-    }
-    div[data-testid="stCheckbox"] label span {
-        white-space: nowrap !important;
-        font-size: 13.5px !important;
-        font-weight: 600 !important;
-    }
-    
     /* Expander 그림자 */
     div[data-testid="stExpander"] {
         border: 1px solid #e0e0e0;
@@ -155,7 +140,7 @@ if sheet_schedule:
             has_extra_courts = False
             day_data = {str(h): [] for h in range(18, 23)}
             
-            # 1) 전체 휴관/대회 여부 체크 (한 시간이라도 포함되면 그날은 쉼)
+            # 1) 전체 휴관/대회 여부 체크
             for h in range(13, 23):
                 val = str(row.get(f"{h}:00", "")).strip()
                 if val:
@@ -164,7 +149,7 @@ if sheet_schedule:
                         closure_text = c_txt
                         break
             
-            # 2) 휴관이 아니면 커스텀 코트(6, 7, 8번) 확인
+            # 2) 휴관이 아니면 커스텀 코트 확인
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
@@ -323,41 +308,60 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (선택 후 우측 등록/취소 클릭)")
-            
-            num_slots = len(available_time_slots)
-            ratios = [1.3] * num_slots + [1.0, 1.0] 
-            main_cols = st.columns(ratios)
+            st.markdown("**2️⃣ 참석 시간 선택** (참석하실 시간 블록을 터치하세요 👆)")
             
             selected_times = []
-            for idx, time_slot in enumerate(available_time_slots):
-                with main_cols[idx]:
-                    start_hr = time_slot.split(":")[0]
-                    end_hr = time_slot.split(" ~ ")[1].split(":")[0]
-                    short_label = f"{start_hr}~{end_hr}시"
-                    
-                    if st.checkbox(short_label):
-                        selected_times.append(time_slot)
+            if available_time_slots:
+                try:
+                    # Streamlit 1.36+ 지원 분절형 막대 컨트롤 (가장 깔끔한 막대 바 형태)
+                    raw_selection = st.segmented_control(
+                        "시간 선택 바",
+                        options=available_time_slots,
+                        selection_mode="multi",
+                        format_func=lambda x: f"{x.split(':')[0]}~{x.split(' ~ ')[1].split(':')[0]}시",
+                        label_visibility="collapsed"
+                    )
+                    selected_times = list(raw_selection) if raw_selection else []
+                except AttributeError:
+                    # 구버전 호환용 Fallback
+                    try:
+                        raw_selection = st.pills(
+                            "시간 선택 바",
+                            options=available_time_slots,
+                            selection_mode="multi",
+                            format_func=lambda x: f"{x.split(':')[0]}~{x.split(' ~ ')[1].split(':')[0]}시",
+                            label_visibility="collapsed"
+                        )
+                        selected_times = list(raw_selection) if raw_selection else []
+                    except AttributeError:
+                        selected_times = st.multiselect(
+                            "시간 선택 바",
+                            options=available_time_slots,
+                            format_func=lambda x: f"{x.split(':')[0]}~{x.split(' ~ ')[1].split(':')[0]}시",
+                            label_visibility="collapsed"
+                        )
                         
-            with main_cols[-2]:
-                if st.button("🚀 등록", use_container_width=True, type="primary"):
+            # 버튼 영역 (2단 배열)
+            col_reg, col_cncl = st.columns(2)
+            with col_reg:
+                if st.button("🚀 등록하기", use_container_width=True, type="primary"):
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
                     elif not selected_times:
-                        st.warning("⚠️ 시간을 선택해 주세요!")
+                        st.warning("⚠️ 참석하실 시간을 선택해 주세요!")
                     else:
                         if not current_db.empty and user_name in current_db['이름'].values:
                             st.error(f"🚨 '{user_name}'님은 이미 등록하셨습니다!")
                         else:
                             with st.spinner("기록 중..."):
-                                add_attendance(user_name, selected_times)
+                                add_attendance(user_name, sorted(selected_times))
                                 get_all_members.clear() 
                                 st.session_state.clear_input = True 
                                 st.success(f"🎉 {user_name}님 등록 완료!")
                                 st.rerun()
                                 
-            with main_cols[-1]:
-                if st.button("🗑️ 취소", use_container_width=True):
+            with col_cncl:
+                if st.button("🗑️ 등록 취소", use_container_width=True):
                     if not user_name.strip():
                         st.warning("⚠️ 이름을 입력해 주세요!")
                     else:
@@ -522,21 +526,20 @@ with tab2:
                 
             info = monthly_schedule_dict[date_str]
             
-            # 날짜 텍스트 색상 결정 (일/공휴일: 빨강, 토요일: 파랑, 평일: 기본)
             if day.month != st.session_state.view_month:
                 if info['is_holiday'] or info['is_sun']:
-                    date_color = "#ef9a9a" # 연한 빨강
+                    date_color = "#ef9a9a"
                 elif day.weekday() == 5:
-                    date_color = "#90caf9" # 연한 파랑
+                    date_color = "#90caf9"
                 else:
-                    date_color = "#cccccc" # 연한 회색
+                    date_color = "#cccccc"
             else:
                 if info['is_holiday'] or info['is_sun']:
-                    date_color = "#d32f2f" # 진한 빨강
+                    date_color = "#d32f2f"
                 elif day.weekday() == 5:
-                    date_color = "#1976d2" # 진한 파랑
+                    date_color = "#1976d2"
                 else:
-                    date_color = "#333333" # 진한 회색
+                    date_color = "#333333"
                 
             date_display_html = f"<span class='cal-date' style='color: {date_color};'>{day_num}"
             content_html = ""
