@@ -39,86 +39,72 @@ st.markdown("""
     }
     
     /* =========================================
-       🚀 [모바일 완벽 호환] 커스텀 타임 바(Bar) 
+       🎚️ 바(Segmented Control) 모바일 완벽 최적화
        ========================================= */
-    /* 모바일 환경에서 세로줄바꿈 원천 차단 및 완벽한 가로 유지 */
-    @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"] {
-            flex-wrap: nowrap !important;
-        }
-        div[data-testid="column"] {
-            min-width: 0 !important;
-            flex: 1 1 0% !important;
-        }
+    div[data-testid="stSegmentedControl"] {
+        width: 100% !important;
     }
-    
-    /* 연속된 바(Bar) 형태를 위해 컬럼 사이의 간격을 없앰 */
-    div[data-testid="stHorizontalBlock"] {
-        gap: 0 !important;
-    }
-
-    /* 체크박스 기본 사각형 아이콘 완전히 숨김 */
-    div[data-testid="stCheckbox"] div[data-baseweb="checkbox"] {
-        display: none !important;
-    }
-    
-    /* 체크박스 컨테이너 여백 제거 및 사이즈 세팅 */
-    div[data-testid="stCheckbox"] label {
+    /* 모바일 가로 유지 (줄바꿈 방지) 및 테두리 설정 */
+    div[data-testid="stSegmentedControl"] > div {
+        display: flex !important;
+        flex-wrap: nowrap !important; 
+        width: 100% !important;
+        background-color: #f1f3f5 !important;
+        border: 2px solid #ccc !important;
+        border-radius: 8px !important;
         padding: 0 !important;
-        margin: 0 !important;
-        width: 100% !important;
-        height: 66px !important; /* 20% 커진 시원한 높이 */
+        gap: 0 !important;
+        overflow: hidden !important;
     }
-    
-    /* 체크박스 글자 영역을 거대한 블록으로 디자인 변환 */
-    div[data-testid="stCheckbox"] label > div:last-child {
-        width: 100% !important;
-        height: 100% !important;
+    /* 각 칸의 비율 동일 설정 및 정렬 (높이 20% 추가 확대 적용) */
+    div[data-testid="stSegmentedControl"] label {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        border-right: 1px solid #ccc !important;
+        border-radius: 0 !important;
         margin: 0 !important;
-        padding: 0 0 0 10px !important; /* 글씨를 최대한 왼쪽으로 (눈금 역할) */
-        background-color: #f1f3f5 !important; /* 미선택시 회색 배경 */
-        border: 2px solid #bbb !important;
-        border-right: none !important; /* 블록끼리 연결되게 우측 선 제거 */
+        padding: 0 0 0 8px !important; /* 왼쪽으로 바짝 붙임 */
+        height: 66px !important; /* 기존 55px -> 66px로 터치 영역 20% 확대 */
+        cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: flex-start !important;
-        border-radius: 0 !important; /* 가운데 블록들은 네모 반듯하게 */
-        transition: background-color 0.1s, color 0.1s !important;
+        justify-content: flex-start !important; /* 왼쪽 정렬 */
+        transition: background-color 0.15s ease !important;
+    }
+    div[data-testid="stSegmentedControl"] label:last-child {
+        border-right: none !important;
     }
     
-    /* 왼쪽 끝, 오른쪽 끝 블록의 모서리만 둥글게, 마지막 블록 우측 선 마감 */
-    div[data-testid="column"]:first-child div[data-testid="stCheckbox"] label > div:last-child {
-        border-top-left-radius: 8px !important;
-        border-bottom-left-radius: 8px !important;
-    }
-    div[data-testid="column"]:last-child div[data-testid="stCheckbox"] label > div:last-child {
-        border-right: 2px solid #bbb !important;
-        border-top-right-radius: 8px !important;
-        border-bottom-right-radius: 8px !important;
-    }
-    
-    /* 글씨 크기 확대 및 디자인 */
-    div[data-testid="stCheckbox"] label > div:last-child p {
-        font-size: 22px !important; /* 20% 커진 폰트 사이즈 */
+    /* 시간 글자 디자인 (폰트 크기 확대 적용) */
+    div[data-testid="stSegmentedControl"] p,
+    div[data-testid="stSegmentedControl"] span {
+        font-size: 20px !important; /* 18px -> 20px 가시성 강화 */
         font-weight: 900 !important;
-        color: #777 !important;
+        color: #666 !important;
         margin: 0 !important;
+        line-height: 1.1 !important;
     }
     
-    /* 🔥 [핵심] 체크박스가 선택되었을 때 배경 녹색으로 채우기 */
-    div[data-testid="stCheckbox"] input:checked ~ div:last-child {
+    /* 🔥 선택 시 박스 내부 녹색 채우기 및 글자색 흰색 변환 */
+    div[data-testid="stSegmentedControl"] label[data-checked="true"],
+    div[data-testid="stSegmentedControl"] label:has(input:checked) {
         background-color: #4CAF50 !important;
-        border-color: #4CAF50 !important;
     }
-    /* 선택시 글씨를 흰색으로 */
-    div[data-testid="stCheckbox"] input:checked ~ div:last-child p {
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) p,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
         color: #ffffff !important;
     }
     
-    /* 모바일 터치 시 나타나는 붉은 외곽선 차단 */
-    div[data-testid="stCheckbox"] label:focus,
-    div[data-testid="stCheckbox"] label:focus-within {
+    /* Streamlit 기본 동작(애니메이션 배경, 붉은 테두리 등) 숨김 */
+    div[data-testid="stSegmentedControl"] div[data-baseweb="tag"] {
+        display: none !important;
+    }
+    div[data-testid="stSegmentedControl"] label:focus,
+    div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
+        box-shadow: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -203,6 +189,7 @@ today_str = today_dt.strftime('%Y-%m-%d')
 today_schedule = {} 
 monthly_schedule_dict = {} 
 
+# 주말/공휴일 오늘 스케줄 초기 세팅
 fixed_today = get_weekend_schedule(today_dt)
 for h in range(13, 23):
     ui_time = time_slots_mapping[f"{h}:00"]
@@ -303,10 +290,6 @@ if "view_month" not in st.session_state:
 if st.session_state.clear_input:
     if "pill_member" in st.session_state:
         st.session_state.pill_member = None
-    # 등록 성공 시 모든 체크박스 선택 해제 초기화
-    for slot in time_slots_mapping.values():
-        if f"chk_{slot}" in st.session_state:
-            st.session_state[f"chk_{slot}"] = False
     st.session_state.clear_input = False
 
 def fetch_data():
@@ -394,34 +377,41 @@ with tab1:
             
             selected_times = []
             if available_time_slots:
-                # 🎚️ 체크박스를 활용한 완전 커스텀 바 생성
-                cols = st.columns(len(available_time_slots))
-                
-                for i, slot in enumerate(available_time_slots):
-                    # 시작 시간 추출 (예: 18)
-                    start_hr = slot.split(":")[0]
-                    
-                    # 라벨 텍스트 가공 (마지막 칸만 종료 시간 포함)
-                    if i == len(available_time_slots) - 1:
-                        end_hr = slot.split(" ~ ")[1].split(":")[0]
-                        label_str = f"{start_hr}~{end_hr}"
-                    else:
-                        label_str = f"{start_hr}~"
-                        
-                    with cols[i]:
-                        # 체크박스가 선택되면 자동으로 selected_times 리스트에 추가됨
-                        if st.checkbox(label_str, key=f"chk_{slot}"):
-                            selected_times.append(slot)
+                try:
+                    # ✨ 물결 표시(~) 및 마지막 칸에만 종료 시간 표시
+                    def format_time_label(x):
+                        start_hr = x.split(":")[0]
+                        if x == available_time_slots[-1]:
+                            end_hr = x.split(" ~ ")[1].split(":")[0]
+                            return f"{start_hr}~{end_hr}"
+                        return f"{start_hr}~"
+
+                    raw_selection = st.segmented_control(
+                        "시간 선택 바",
+                        options=available_time_slots,
+                        selection_mode="multi",
+                        format_func=format_time_label, 
+                        label_visibility="collapsed"
+                    )
+                    selected_times = list(raw_selection) if raw_selection else []
+                except AttributeError:
+                    # 구버전 호환용
+                    selected_times = st.multiselect(
+                        "시간 선택 바",
+                        options=available_time_slots,
+                        format_func=lambda x: f"{x.split(':')[0]}~{x.split(' ~ ')[1].split(':')[0]}시",
+                        label_visibility="collapsed"
+                    )
                 
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 터치하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 선택하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
-            # 버튼 영역 (CSS gap: 0 때문에 버튼 사이 여백을 스페이서(0.05)로 강제 지정)
-            col_reg, spacer, col_cncl = st.columns([1, 0.05, 1])
+            # 버튼 영역 (2단 배열)
+            col_reg, col_cncl = st.columns(2)
             with col_reg:
                 if st.button("🚀 등록하기", use_container_width=True, type="primary"):
                     if not user_name.strip():
@@ -526,8 +516,8 @@ with tab1:
 # 🗓️ 5. 두 번째 탭: 월간 예약 달력
 # ==========================================
 with tab2:
-    # 💡 이전/다음 달 이동 버튼 (CSS gap: 0 때문에 여백용 스페이서 컬럼 추가)
-    col_btn1, spacer1, col_btn2, spacer2, col_btn3 = st.columns([1, 0.05, 2, 0.05, 1])
+    # 💡 이전/다음 달 이동 버튼
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
     with col_btn1:
         if st.button("◀ 이전 달", use_container_width=True):
             if st.session_state.view_month == 1:
