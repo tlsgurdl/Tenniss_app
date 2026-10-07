@@ -350,27 +350,19 @@ with tab1:
             
             selected_times = []
             if available_time_slots:
-                # 📏 HTML 커스텀 눈금자(Ruler) 생성
+                # 📏 HTML 커스텀 눈금자(Ruler) 생성 - 한 줄로 작성하여 렌더링 오류 방지
                 num_slots = len(available_time_slots)
-                ruler_html = f"""
-                <div style="position: relative; width: 100%; height: 35px; margin-top: 5px; margin-bottom: -5px;">
-                """
+                ruler_html = '<div style="position: relative; width: 100%; height: 35px; margin-top: 5px; margin-bottom: -5px;">'
+                
                 for i, time_slot in enumerate(available_time_slots):
                     start_hr = time_slot.split(":")[0]
                     pct = (i / num_slots) * 100
-                    ruler_html += f"""
-                    <div style="position: absolute; left: {pct}%; bottom: 0; height: 12px; border-left: 2px solid #777;">
-                        <span style="position: absolute; top: -22px; left: -8px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span>
-                    </div>
-                    """
+                    ruler_html += f'<div style="position: absolute; left: {pct}%; bottom: 0; height: 12px; border-left: 2px solid #777;"><span style="position: absolute; top: -22px; left: -8px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
+                
                 # 마지막 종료 눈금
                 last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
-                ruler_html += f"""
-                <div style="position: absolute; left: 100%; bottom: 0; height: 12px; border-left: 2px solid #777;">
-                    <span style="position: absolute; top: -22px; left: -8px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span>
-                </div>
-                """
-                ruler_html += "</div>"
+                ruler_html += f'<div style="position: absolute; left: 100%; bottom: 0; height: 12px; border-left: 2px solid #777;"><span style="position: absolute; top: -22px; left: -8px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
+                ruler_html += '</div>'
                 
                 # 화면에 눈금자 출력
                 st.markdown(ruler_html, unsafe_allow_html=True)
