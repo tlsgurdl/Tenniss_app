@@ -39,9 +39,9 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 막대(Segmented Control) 커스텀 완전 개편
+       🎚️ 막대(Segmented Control) 모바일 최적화 커스텀
        ========================================= */
-    /* 1. 막대바 영역 가로 꽉 차게 확장 (눈금자와 길이 100% 일치) */
+    /* 1. 막대바 영역 가로 꽉 차게 확장 및 모바일 줄바꿈 원천 차단 */
     div[data-testid="stSegmentedControl"] {
         width: 100% !important;
         display: flex !important;
@@ -49,48 +49,62 @@ st.markdown("""
     div[data-testid="stSegmentedControl"] > div {
         width: 100% !important;
         display: flex !important;
+        flex-wrap: nowrap !important; /* 모바일 줄바꿈 방지 */
         background-color: #f1f3f5 !important;
         border: 1px solid #ced4da !important;
         border-radius: 4px !important;
         padding: 0 !important;
         gap: 0 !important;
     }
-    /* 2. 각 버튼(label)을 눈금자와 똑같이 균등 분할 */
-    div[data-testid="stSegmentedControl"] label {
+    /* 2. 각 버튼(label)을 눈금자와 똑같이 균등 분할 및 강제 높이 지정 */
+    div[data-testid="stSegmentedControl"] label,
+    div[data-testid="stSegmentedControl"] button {
         flex: 1 1 0% !important;
         border-right: 1px solid #ced4da !important;
         border-radius: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
         min-height: 40px !important;
+        height: 40px !important;
+        min-width: 0 !important; /* 좁은 화면에서 칸이 밀리는 현상 방지 */
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         background-color: transparent !important;
-        transition: background-color 0.15s ease !important;
+        transition: background-color 0.1s ease !important;
         box-sizing: border-box !important;
         cursor: pointer !important;
+        overflow: hidden !important;
     }
-    div[data-testid="stSegmentedControl"] label:last-child {
+    div[data-testid="stSegmentedControl"] label:last-child,
+    div[data-testid="stSegmentedControl"] button:last-child {
         border-right: none !important;
     }
-    /* 3. 내부 글씨와 Streamlit 기본 UI 요소를 완벽하게 투명화(공간 차지 방지) */
-    div[data-testid="stSegmentedControl"] label * {
-        color: transparent !important;
+    /* 3. 내부 글씨 완전 제거 (공간 자체를 차지하지 못하게 아예 없앰) */
+    div[data-testid="stSegmentedControl"] p,
+    div[data-testid="stSegmentedControl"] span,
+    div[data-testid="stSegmentedControl"] span[data-baseweb="tag"] {
+        display: none !important; 
         font-size: 0px !important;
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
+        color: transparent !important;
     }
-    /* 4. 🔥 선택되었을 때 초록색 게이지 꽉 채우기 (빨간 테두리 제거) */
+    /* 4. 🔥 선택되었을 때 초록색 게이지 꽉 채우기 (어떤 구조에서든 배경이 칠해지도록 다중 지정) */
+    div[data-testid="stSegmentedControl"] label[data-checked="true"],
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] > div,
     div[data-testid="stSegmentedControl"] label:has(input:checked),
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] {
+    div[data-testid="stSegmentedControl"] label:has(input:checked) > div,
+    div[data-testid="stSegmentedControl"] input:checked + div,
+    div[data-testid="stSegmentedControl"] input:checked ~ div,
+    div[data-testid="stSegmentedControl"] button[aria-selected="true"],
+    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
         background-color: #4CAF50 !important;
+        border-color: transparent !important;
     }
-    /* 5. 포커스 시 나타나는 붉은색/파란색 외곽선 완전 차단 */
+    /* 5. 포커스 시 나타나는 기본 외곽선 완전 차단 */
     div[data-testid="stSegmentedControl"] label:focus,
     div[data-testid="stSegmentedControl"] label:focus-within,
-    div[data-testid="stSegmentedControl"] label:active {
+    div[data-testid="stSegmentedControl"] button:focus,
+    div[data-testid="stSegmentedControl"] input:focus {
         outline: none !important;
         box-shadow: none !important;
     }
@@ -366,24 +380,22 @@ with tab1:
             selected_times = []
             if available_time_slots:
                 
-                # 📏 HTML 커스텀 눈금자(Ruler) 생성 - (flex 1 1 0% 방식으로 선택 바와 완벽 동일 분할)
+                # 📏 HTML 커스텀 눈금자(Ruler) 생성 (flex: 1 1 0%로 완벽 분할 매칭)
                 ruler_html = '<div style="display: flex; width: 100%; pointer-events: none; margin-top: 25px; margin-bottom: 2px;">'
                 
                 for time_slot in available_time_slots:
                     start_hr = time_slot.split(":")[0]
-                    # flex: 1 1 0%로 지정하여 막대바 칸들과 정확히 같은 너비 차지
                     ruler_html += f'<div style="flex: 1 1 0%; border-left: 2px solid #777; height: 10px; position: relative; box-sizing: border-box;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
                 
-                # 마지막 종료 눈금 닫기 (우측 끝에 위치)
+                # 마지막 종료 눈금
                 last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
                 ruler_html += f'<div style="width: 2px; height: 10px; background-color: #777; position: relative;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
                 ruler_html += '</div>'
                 
-                # 화면에 눈금자 렌더링 (엔터 및 줄바꿈을 코드에서 제거하여 마크다운 파싱 오류 원천 차단)
                 st.markdown(ruler_html, unsafe_allow_html=True)
                 
                 try:
-                    # ✅ CSS 처리가 완벽하므로, format_func 꼼수 없이 원본 리스트를 그대로 사용
+                    # 원본 데이터를 그대로 렌더링하고, 글자 지우기는 완벽하게 CSS가 담당함
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -392,7 +404,7 @@ with tab1:
                     )
                     selected_times = list(raw_selection) if raw_selection else []
                 except AttributeError:
-                    # 구버전 호환성 유지
+                    # 구버전 Fallback
                     selected_times = st.multiselect(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -403,7 +415,7 @@ with tab1:
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>원하는 시간을 모두 탭 하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>원하는 시간을 모두 터치하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
