@@ -39,18 +39,21 @@ st.markdown("""
     }
     
     /* 🎚️ 게이지 바(Segmented Control) 커스텀 CSS */
+    div[data-testid="stSegmentedControl"] {
+        width: 100% !important; 
+    }
     div[data-testid="stSegmentedControl"] > div {
-        background-color: #f8f9fa !important;
-        border-radius: 6px !important;
+        background-color: #f1f3f5 !important;
+        border-radius: 4px !important;
         border: 1px solid #ced4da !important;
         padding: 0 !important;
         gap: 0 !important;
-        min-height: 40px !important;
+        min-height: 35px !important;
         width: 100% !important;
         display: flex !important;
         overflow: hidden !important;
     }
-    /* 버튼 넓이 균등 분할 및 경계선 */
+    /* 버튼 넓이 균등 분할 및 경계선 설정 (눈금자와 동일하게 맞춤) */
     div[data-testid="stSegmentedControl"] button {
         flex: 1 1 0% !important;
         border-radius: 0 !important;
@@ -60,8 +63,9 @@ st.markdown("""
     div[data-testid="stSegmentedControl"] button:last-child {
         border-right: none !important;
     }
-    /* 버튼 내부 텍스트 완전 숨김 (게이지바 역할만 수행) */
-    div[data-testid="stSegmentedControl"] button p {
+    /* 버튼 내부 텍스트 완전 투명화 (게이지바 역할만 수행) */
+    div[data-testid="stSegmentedControl"] button p,
+    div[data-testid="stSegmentedControl"] span[data-baseweb="tag"] {
         color: transparent !important;
         user-select: none !important;
     }
@@ -70,10 +74,6 @@ st.markdown("""
     div[data-testid="stSegmentedControl"] button[aria-pressed="true"],
     div[data-testid="stSegmentedControl"] label[data-selected="true"] {
         background-color: #4CAF50 !important;
-    }
-    /* Streamlit 기본 선택 배경 제거 */
-    div[data-testid="stSegmentedControl"] span[data-baseweb="tag"] {
-        background-color: transparent !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -350,25 +350,26 @@ with tab1:
             
             selected_times = []
             if available_time_slots:
-                # 📏 HTML 커스텀 눈금자(Ruler) 생성 - 한 줄로 작성하여 렌더링 오류 방지
-                num_slots = len(available_time_slots)
-                ruler_html = '<div style="position: relative; width: 100%; height: 35px; margin-top: 5px; margin-bottom: -5px;">'
                 
-                for i, time_slot in enumerate(available_time_slots):
+                # 📏 HTML 커스텀 눈금자(Ruler) 생성
+                # Flexbox를 사용하여 하단의 Segmented Control 막대와 100% 동일한 비율로 그려지게 처리합니다.
+                # pointer-events: none 으로 설정하여 마우스 클릭을 가로채는 버그를 원천 차단합니다.
+                ruler_html = '<div style="display: flex; width: 100%; pointer-events: none; margin-top: 15px; margin-bottom: 2px;">'
+                
+                for time_slot in available_time_slots:
                     start_hr = time_slot.split(":")[0]
-                    pct = (i / num_slots) * 100
-                    ruler_html += f'<div style="position: absolute; left: {pct}%; bottom: 0; height: 12px; border-left: 2px solid #777;"><span style="position: absolute; top: -22px; left: -8px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
+                    ruler_html += f'<div style="flex: 1; border-left: 2px solid #777; position: relative; height: 10px;"><span style="position: absolute; top: -18px; left: -7px; font-size: 12px; font-weight: 800; color: #444;">{start_hr}</span></div>'
                 
                 # 마지막 종료 눈금
                 last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
-                ruler_html += f'<div style="position: absolute; left: 100%; bottom: 0; height: 12px; border-left: 2px solid #777;"><span style="position: absolute; top: -22px; left: -8px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
+                ruler_html += f'<div style="position: relative; height: 10px; border-left: 2px solid #777;"><span style="position: absolute; top: -18px; left: -7px; font-size: 12px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
                 ruler_html += '</div>'
                 
-                # 화면에 눈금자 출력
-                st.markdown(ruler_html, unsafe_allow_html=True)
+                # 화면에 눈금자 출력 (줄바꿈 문자를 없애서 코드가 그대로 노출되는 오류 방지)
+                st.markdown(ruler_html.replace('\n', ''), unsafe_allow_html=True)
                 
                 try:
-                    # 텍스트를 "ㅤ"(보이지 않는 공백)로 렌더링하여 순수 게이지 박스로 만듦
+                    # 빈 특수문자("ㅤ")를 라벨로 설정하여 막대 모양만 유지
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -378,7 +379,7 @@ with tab1:
                     )
                     selected_times = list(raw_selection) if raw_selection else []
                 except AttributeError:
-                    # 구버전 Streamlit 대비 Fallback (일반 다중 선택)
+                    # 구버전 Fallback
                     selected_times = st.multiselect(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -386,13 +387,13 @@ with tab1:
                         label_visibility="collapsed"
                     )
                 
-                # 시각적 피드백 제공
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 10px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
                     st.markdown(f"<div style='text-align: center; color: #999; margin-top: 10px; font-size: 13px;'>게이지 빈칸을 눌러 시간을 선택해 주세요.</div>", unsafe_allow_html=True)
                         
-            st.write("") # 간격 조정용
+            st.write("") 
+            
             # 버튼 영역 (2단 배열)
             col_reg, col_cncl = st.columns(2)
             with col_reg:
