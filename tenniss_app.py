@@ -38,7 +38,10 @@ st.markdown("""
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
     
-    /* 🎚️ 게이지 바 폭 100% 일치 및 커스텀 */
+    /* =========================================
+       🎚️ 막대(Segmented Control) 커스텀 완전 개편
+       ========================================= */
+    /* 1. 막대바 영역 가로 꽉 차게 확장 (눈금자와 길이 100% 일치) */
     div[data-testid="stSegmentedControl"] {
         width: 100% !important;
         display: flex !important;
@@ -47,33 +50,49 @@ st.markdown("""
         width: 100% !important;
         display: flex !important;
         background-color: #f1f3f5 !important;
-        border-radius: 4px !important;
         border: 1px solid #ced4da !important;
+        border-radius: 4px !important;
+        padding: 0 !important;
+        gap: 0 !important;
+    }
+    /* 2. 각 버튼(label)을 눈금자와 똑같이 균등 분할 */
+    div[data-testid="stSegmentedControl"] label {
+        flex: 1 1 0% !important;
+        border-right: 1px solid #ced4da !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
         padding: 0 !important;
         min-height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: transparent !important;
+        transition: background-color 0.15s ease !important;
+        box-sizing: border-box !important;
+        cursor: pointer !important;
     }
-    /* 버튼 넓이 균등 분할 */
-    div[data-testid="stSegmentedControl"] button {
-        flex: 1 1 0% !important;
-        border-radius: 0 !important;
-        border-right: 1px solid #ced4da !important;
-        margin: 0 !important;
-    }
-    div[data-testid="stSegmentedControl"] button:last-child {
+    div[data-testid="stSegmentedControl"] label:last-child {
         border-right: none !important;
     }
-    /* 텍스트 완벽 투명화 (공간 차지 방지) */
-    div[data-testid="stSegmentedControl"] button p,
-    div[data-testid="stSegmentedControl"] span[data-baseweb="tag"] {
+    /* 3. 내부 글씨와 Streamlit 기본 UI 요소를 완벽하게 투명화(공간 차지 방지) */
+    div[data-testid="stSegmentedControl"] label * {
         color: transparent !important;
         font-size: 0px !important;
-        user-select: none !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
-    /* 선택되었을 때 초록색 채워짐 */
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"],
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
+    /* 4. 🔥 선택되었을 때 초록색 게이지 꽉 채우기 (빨간 테두리 제거) */
+    div[data-testid="stSegmentedControl"] label:has(input:checked),
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] {
         background-color: #4CAF50 !important;
-        border-radius: 0 !important;
+    }
+    /* 5. 포커스 시 나타나는 붉은색/파란색 외곽선 완전 차단 */
+    div[data-testid="stSegmentedControl"] label:focus,
+    div[data-testid="stSegmentedControl"] label:focus-within,
+    div[data-testid="stSegmentedControl"] label:active {
+        outline: none !important;
+        box-shadow: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -178,7 +197,6 @@ if sheet_schedule:
             has_extra_courts = False
             day_data = {str(h): [] for h in range(18, 23)}
             
-            # 1) 전체 휴관/대회 여부 체크
             for h in range(13, 23):
                 val = str(row.get(f"{h}:00", "")).strip()
                 if val:
@@ -187,7 +205,6 @@ if sheet_schedule:
                         closure_text = c_txt
                         break
             
-            # 2) 휴관이 아니면 커스텀 코트 확인
             if not closure_text:
                 for h in range(18, 23):
                     val = str(row.get(f"{h}:00", "")).strip()
@@ -202,7 +219,6 @@ if sheet_schedule:
                         day_data[str(h)].append('8')
                         has_extra_courts = True
                         
-            # 3) 달력 렌더링용 dict 에 저장
             if date_val not in monthly_schedule_dict:
                 try:
                     dt_obj = datetime.strptime(date_val, '%Y-%m-%d').date()
@@ -225,7 +241,6 @@ if sheet_schedule:
                 monthly_schedule_dict[date_val]['custom_data'] = day_data
                 monthly_schedule_dict[date_val]['show_fixed'] = False 
 
-            # 4) 오늘 날짜인 경우 코트 현황판 덮어쓰기 로직
             if date_val == today_str:
                 if closure_text:
                     for h in range(13, 23):
@@ -346,40 +361,38 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (해당 시간 게이지를 터치하여 채워주세요 👆)")
+            st.markdown("**2️⃣ 참석 시간 선택** (해당 시간 게이지 빈칸을 터치하여 채워주세요 👆)")
             
             selected_times = []
             if available_time_slots:
                 
-                # 📏 HTML 커스텀 눈금자(Ruler) 생성 (줄바꿈 없이 구성하여 폭 완벽 매칭)
-                num_slots = len(available_time_slots)
-                ruler_html = '<div style="position: relative; width: 100%; height: 25px; margin-top: 15px; pointer-events: none;">'
+                # 📏 HTML 커스텀 눈금자(Ruler) 생성 - (flex 1 1 0% 방식으로 선택 바와 완벽 동일 분할)
+                ruler_html = '<div style="display: flex; width: 100%; pointer-events: none; margin-top: 25px; margin-bottom: 2px;">'
                 
-                for i, time_slot in enumerate(available_time_slots):
+                for time_slot in available_time_slots:
                     start_hr = time_slot.split(":")[0]
-                    pct = (i / num_slots) * 100
-                    ruler_html += f'<div style="position: absolute; left: {pct}%; bottom: 0; width: 2px; height: 10px; background-color: #888;"><span style="position: absolute; top: -18px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
+                    # flex: 1 1 0%로 지정하여 막대바 칸들과 정확히 같은 너비 차지
+                    ruler_html += f'<div style="flex: 1 1 0%; border-left: 2px solid #777; height: 10px; position: relative; box-sizing: border-box;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{start_hr}</span></div>'
                 
-                # 마지막 종료 눈금
+                # 마지막 종료 눈금 닫기 (우측 끝에 위치)
                 last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
-                ruler_html += f'<div style="position: absolute; right: 0; bottom: 0; width: 2px; height: 10px; background-color: #888;"><span style="position: absolute; top: -18px; right: -7px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
+                ruler_html += f'<div style="width: 2px; height: 10px; background-color: #777; position: relative;"><span style="position: absolute; top: -20px; left: -7px; font-size: 13px; font-weight: 800; color: #444;">{last_end_hr}</span></div>'
                 ruler_html += '</div>'
                 
-                # 눈금자 출력
+                # 화면에 눈금자 렌더링 (엔터 및 줄바꿈을 코드에서 제거하여 마크다운 파싱 오류 원천 차단)
                 st.markdown(ruler_html, unsafe_allow_html=True)
                 
-                # ✨ 핵심 해결: 보이지 않는 고유값(Zero-width space)을 곱해서 고유키를 만들어 줌으로써 개별 선택 버그 해결
                 try:
+                    # ✅ CSS 처리가 완벽하므로, format_func 꼼수 없이 원본 리스트를 그대로 사용
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
                         selection_mode="multi",
-                        format_func=lambda x: "\u200B" * (available_time_slots.index(x) + 1), 
                         label_visibility="collapsed"
                     )
                     selected_times = list(raw_selection) if raw_selection else []
                 except AttributeError:
-                    # 구버전 호환용
+                    # 구버전 호환성 유지
                     selected_times = st.multiselect(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -388,9 +401,9 @@ with tab1:
                     )
                 
                 if selected_times:
-                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 10px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 10px; font-size: 13px;'>게이지 빈칸을 눌러 시간을 선택해 주세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>원하는 시간을 모두 탭 하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
@@ -562,7 +575,6 @@ with tab2:
             date_str = day.strftime('%Y-%m-%d')
             day_num = day.day
             
-            # 동적으로 넘어간 달력의 기본값(주말/휴일)을 딕셔너리에 채워줌
             if date_str not in monthly_schedule_dict:
                 is_hol = day in kr_holidays
                 is_sun = (day.weekday() == 6)
@@ -604,7 +616,6 @@ with tab2:
             if info['closure']:
                 content_html = f"<span class='closure-badge'>{info['closure']}</span>"
             
-            # 평일 예약 스케줄 표시 파트
             elif info['show_custom']: 
                 content_html = "<table class='mini-table'><tr><th class='mini-th' style='width:34%;'>6</th><th class='mini-th' style='width:33%;'>7</th><th class='mini-th' style='width:33%;'>8</th></tr>"
                 for hr in ['18', '19', '20', '21', '22']: 
@@ -622,7 +633,6 @@ with tab2:
                     content_html += f"</tr>"
                 content_html += "</table>"
                 
-            # 주말/공휴일 고정대관 표시 파트
             elif info['show_fixed']:
                 is_sun_hol = info['is_holiday'] or info['is_sun']
                 hr_range = range(13, 20) if is_sun_hol else range(13, 21)
