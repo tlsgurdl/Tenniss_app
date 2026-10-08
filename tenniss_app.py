@@ -58,72 +58,83 @@ st.markdown("""
         border: 1px solid #4CAF50 !important;
     }
     
-    /* =========================================
-       🎚️ 4. 시간 선택 바 (최상위 컨테이너부터 완벽하게 100% 꽉 채우기!)
-       ========================================= */
-       
-    /* ✨ [핵심 해결] 1. 가장 바깥 껍질인 stElementContainer의 fit-content를 무력화! */
-    div[data-testid="stElementContainer"]:has(div[aria-label="시간 선택 바"]) {
+    /* -----------------------------------------
+       🎚️ 4. 시간 선택 바 (글자 크기 UP, 꽉 차는 스와이프 막대)
+       ----------------------------------------- */
+    div[data-testid="stSegmentedControl"] {
         width: 100% !important;
-        max-width: 100% !important;
-        display: block !important;
     }
     
-    /* 2. 그 안의 stButtonGroup 역시 100% 확장 */
-    div[data-testid="stButtonGroup"]:has(div[aria-label="시간 선택 바"]) {
-        width: 100% !important;
-        display: block !important;
-    }
-    
-    /* ✨ 3. 시간 바 틀: 모바일 화면에 맞춰 자동으로 예쁘게 줄바꿈(wrap) 되도록 설정 */
-    div[aria-label="시간 선택 바"] {
+    /* 막대 전체 컨테이너 설정 */
+    div[data-testid="stSegmentedControl"] > div {
         display: flex !important;
-        flex-wrap: wrap !important; /* 모바일에서 버튼이 많으면 두 줄로 깔끔하게 나뉨 */
+        flex-wrap: nowrap !important; /* 한 줄 유지 */
         width: 100% !important;
-        background-color: transparent !important; /* 겉 테두리를 지우고 버튼들을 분리 */
-        border: none !important;
+        overflow-x: auto !important;  /* ✨ 가로 스와이프 허용 */
+        background-color: #f1f3f5 !important;
+        border: 2px solid #ccc !important;
+        border-radius: 8px !important;
         padding: 0 !important;
-        gap: 6px !important; /* 버튼 사이 간격 */
+        gap: 0 !important;
+        
+        /* 모바일 스크롤바 가리기 (깔끔한 화면 유지) */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    div[data-testid="stSegmentedControl"] > div::-webkit-scrollbar {
+        display: none;
     }
     
-    /* 4. 개별 버튼: 비율에 맞게 꽉 차게 설정 */
-    div[aria-label="시간 선택 바"] button {
-        flex: 1 1 calc(20% - 6px) !important; /* 한 줄에 대략 4~5개가 꽉 차도록 비율 설정 */
-        min-width: 70px !important; /* 글씨 안 깨질 최소 너비 보장 */
-        height: 55px !important;
-        background-color: #f8f9fa !important;
-        border: 1px solid #dcdcdc !important;
-        border-radius: 8px !important; /* 개별 버튼처럼 둥글게 */
+    /* 투명 애니메이션 박스 숨김 */
+    div[data-testid="stSegmentedControl"] > div > :not(label) {
+        display: none !important;
+    }
+    
+    /* ✨ 개별 시간 박스: 너비 강제 확대 */
+    div[data-testid="stSegmentedControl"] label {
+        flex: 1 0 auto !important; /* 찌그러지지 않고 내용물만큼 크기 유지 */
+        min-width: 65px !important; /* ✨ 박스 하나당 최소 65px 보장 (터치하기 좋게 확대!) */
+        height: 60px !important;    /* ✨ 높이도 살짝 키움 */
+        border-right: 1px solid #ccc !important; 
+        border-radius: 0 !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 0 10px !important; /* ✨ 양옆 여백 추가하여 박스 팽창 */
         display: flex !important;
         align-items: center !important;
-        justify-content: center !important;
+        justify-content: center !important; 
         cursor: pointer !important;
     }
     
-    /* 5. 텍스트 디자인: 크고 선명하게 16px */
-    div[aria-label="시간 선택 바"] button p {
-        font-size: 16px !important;
-        font-weight: 900 !important;
+    div[data-testid="stSegmentedControl"] label:last-of-type {
+        border-right: none !important;
+    }
+    
+    /* ✨ 시간 글자: 크고 굵게 변경 */
+    div[data-testid="stSegmentedControl"] p,
+    div[data-testid="stSegmentedControl"] span {
+        font-size: 18px !important; /* ✨ 기존 16px -> 18px로 큼직하게! */
+        font-weight: 900 !important; /* ✨ 가장 두껍게! */
         color: #555 !important;
         margin: 0 !important;
-        white-space: nowrap !important;
+        white-space: nowrap !important; /* 줄바꿈 방지 */
+        letter-spacing: -0.5px !important;
     }
     
-    /* 6. 버튼이 선택되었을 때 */
-    div[aria-label="시간 선택 바"] button[aria-pressed="true"] {
+    /* 선택되었을 때 초록색 */
+    div[data-testid="stSegmentedControl"] label[data-checked="true"],
+    div[data-testid="stSegmentedControl"] label:has(input:checked) {
         background-color: #4CAF50 !important;
-        border-color: #4CAF50 !important;
-        box-shadow: 0px 3px 6px rgba(76, 175, 80, 0.25) !important;
     }
-    div[aria-label="시간 선택 바"] button[aria-pressed="true"] p {
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) p,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
         color: #ffffff !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
     }
     
-    /* 포커스 방지 */
-    div[aria-label="시간 선택 바"] button:focus {
+    /* 포커스 테두리 제거 */
+    div[data-testid="stSegmentedControl"] label:focus,
+    div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
         box-shadow: none !important;
     }
@@ -187,7 +198,7 @@ def init_connection():
         credentials = Credentials.from_service_account_info(key_info, scopes=scope)
         client = gspread.authorize(credentials)
         
-        doc = open("고촌테니스_출석부")
+        doc = client.open("고촌테니스_출석부")
         sheet_db = doc.get_worksheet(0)
         try:
             sheet_schedule = doc.worksheet("스케줄")
@@ -385,6 +396,7 @@ with tab1:
             
             if members:
                 try:
+                    # 이름 선택 Pills
                     pill_val = st.pills("기존 회원", options=members, key="pill_member", label_visibility="collapsed")
                 except AttributeError:
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
@@ -405,7 +417,7 @@ with tab1:
                             return f"{start_hr}~{end_hr}"
                         return f"{start_hr}~"
 
-                    # 시간 선택 바 렌더링
+                    # ✨ 시간 바 - segmented_control 사용
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -425,7 +437,7 @@ with tab1:
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 모두 터치하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>모바일에서는 시간을 좌우로 밀어서(스와이프) 확인하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
