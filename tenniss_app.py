@@ -15,9 +15,7 @@ st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="center
 
 st.markdown("""
 <style>
-    /* -----------------------------------------
-       1. 텍스트 입력창 디자인 고정
-       ----------------------------------------- */
+    /* 1. 텍스트 입력창 디자인 고정 */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
         border: 2px solid #000000 !important;
         border-radius: 8px !important;
@@ -33,18 +31,14 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* -----------------------------------------
-       2. Expander 그림자 효과
-       ----------------------------------------- */
+    /* 2. Expander 그림자 효과 */
     div[data-testid="stExpander"] {
         border: 1px solid #e0e0e0;
         border-radius: 12px;
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
     
-    /* -----------------------------------------
-       3. 이름 태그 (Pills) 모바일 최적화
-       ----------------------------------------- */
+    /* 3. 이름 태그(Pills) 모바일 최적화 (건드리지 않음, 기존 유지) */
     div[data-testid="stPills"] button {
         padding: 6px 12px !important;
         font-size: 15px !important;
@@ -58,81 +52,78 @@ st.markdown("""
         border: 1px solid #4CAF50 !important;
     }
     
-    /* -----------------------------------------
-       🎚️ 4. 시간 선택 바 (글자 크기 UP, 꽉 차는 스와이프 막대)
-       ----------------------------------------- */
-    div[data-testid="stSegmentedControl"] {
+    /* =========================================
+       🎚️ 4. 시간 선택 바 (글자 강제 확대 및 100% 꽉 채우기)
+       ========================================= */
+    /* 껍데기부터 알맹이까지 모든 컨테이너의 너비를 100%로 강제 확장 */
+    div[data-testid="stSegmentedControl"],
+    div[data-testid="stSegmentedControl"] > div,
+    div[data-testid="stSegmentedControl"] > div > div {
         width: 100% !important;
-    }
-    
-    /* 막대 전체 컨테이너 설정 */
-    div[data-testid="stSegmentedControl"] > div {
         display: flex !important;
-        flex-wrap: nowrap !important; /* 한 줄 유지 */
-        width: 100% !important;
-        overflow-x: auto !important;  /* ✨ 가로 스와이프 허용 */
+        flex-wrap: nowrap !important;
+    }
+
+    /* 막대 전체 모양 다듬기 및 가로 스와이프 지원 */
+    div[data-testid="stSegmentedControl"] > div {
+        overflow-x: auto !important;
         background-color: #f1f3f5 !important;
         border: 2px solid #ccc !important;
         border-radius: 8px !important;
         padding: 0 !important;
-        gap: 0 !important;
-        
-        /* 모바일 스크롤바 가리기 (깔끔한 화면 유지) */
-        -ms-overflow-style: none;
+        -ms-overflow-style: none; /* 모바일 스크롤바 숨김 */
         scrollbar-width: none;
     }
     div[data-testid="stSegmentedControl"] > div::-webkit-scrollbar {
         display: none;
     }
-    
-    /* 투명 애니메이션 박스 숨김 */
+
+    /* 방해되는 스트림릿 숨김 요소 억제 */
     div[data-testid="stSegmentedControl"] > div > :not(label) {
         display: none !important;
+        width: 0 !important;
     }
-    
-    /* ✨ 개별 시간 박스: 너비 강제 확대 */
+
+    /* 🔥 [핵심 1] 모든 내부 요소에 글자 크기 강제 적용 (와일드카드 * 사용) */
+    div[data-testid="stSegmentedControl"] * {
+        font-size: 18px !important; 
+        font-weight: 900 !important;
+        color: #555 !important;
+        white-space: nowrap !important; /* 줄바꿈 방지 */
+    }
+
+    /* 🔥 [핵심 2] 개별 시간 박스의 비율 및 크기 팽창 설정 */
     div[data-testid="stSegmentedControl"] label {
-        flex: 1 0 auto !important; /* 찌그러지지 않고 내용물만큼 크기 유지 */
-        min-width: 65px !important; /* ✨ 박스 하나당 최소 65px 보장 (터치하기 좋게 확대!) */
-        height: 60px !important;    /* ✨ 높이도 살짝 키움 */
-        border-right: 1px solid #ccc !important; 
-        border-radius: 0 !important;
-        margin: 0 !important;
-        padding: 0 10px !important; /* ✨ 양옆 여백 추가하여 박스 팽창 */
+        flex: 1 1 auto !important; /* 비율을 균등하게 분할하여 꽉 채움 */
+        min-width: 65px !important; /* 글자가 커진 만큼 최소 너비도 확보 */
+        height: 60px !important; /* 터치하기 좋게 상하 높이 확대 */
         display: flex !important;
         align-items: center !important;
-        justify-content: center !important; 
+        justify-content: center !important;
+        border-right: 1px solid #ccc !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 5px !important;
         cursor: pointer !important;
     }
-    
+
+    /* 마지막 칸 오른쪽 선 지우기 */
     div[data-testid="stSegmentedControl"] label:last-of-type {
         border-right: none !important;
     }
-    
-    /* ✨ 시간 글자: 크고 굵게 변경 */
-    div[data-testid="stSegmentedControl"] p,
-    div[data-testid="stSegmentedControl"] span {
-        font-size: 18px !important; /* ✨ 기존 16px -> 18px로 큼직하게! */
-        font-weight: 900 !important; /* ✨ 가장 두껍게! */
-        color: #555 !important;
-        margin: 0 !important;
-        white-space: nowrap !important; /* 줄바꿈 방지 */
-        letter-spacing: -0.5px !important;
-    }
-    
-    /* 선택되었을 때 초록색 */
+
+    /* 선택된 버튼(초록색) 글자색 흰색 강제 변경 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"],
     div[data-testid="stSegmentedControl"] label:has(input:checked) {
         background-color: #4CAF50 !important;
     }
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) p,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
-        color: #ffffff !important;
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] *,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) * {
+        color: #ffffff !important; 
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
     }
-    
-    /* 포커스 테두리 제거 */
+
+    /* 포커스 효과 제거 */
     div[data-testid="stSegmentedControl"] label:focus,
     div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
@@ -396,7 +387,7 @@ with tab1:
             
             if members:
                 try:
-                    # 이름 선택 Pills
+                    # 이름 선택 태그
                     pill_val = st.pills("기존 회원", options=members, key="pill_member", label_visibility="collapsed")
                 except AttributeError:
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
@@ -417,7 +408,7 @@ with tab1:
                             return f"{start_hr}~{end_hr}"
                         return f"{start_hr}~"
 
-                    # ✨ 시간 바 - segmented_control 사용
+                    # ✨ 막대(Segmented Control) 생성
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
