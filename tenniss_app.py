@@ -15,7 +15,9 @@ st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="center
 
 st.markdown("""
 <style>
-    /* 1. 텍스트 입력창 디자인 고정 */
+    /* -----------------------------------------
+       1. 텍스트 입력창 디자인 고정
+       ----------------------------------------- */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
         border: 2px solid #000000 !important;
         border-radius: 8px !important;
@@ -31,29 +33,113 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* 2. Expander 그림자 효과 */
+    /* -----------------------------------------
+       2. Expander 그림자 효과
+       ----------------------------------------- */
     div[data-testid="stExpander"] {
         border: 1px solid #e0e0e0;
         border-radius: 12px;
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
     
-    /* 3. Pills(태그/시간선택) 모바일 터치 최적화 (버튼 크기 살짝 키우기) */
+    /* -----------------------------------------
+       3. 이름 태그 (Pills) 모바일 최적화
+       ----------------------------------------- */
     div[data-testid="stPills"] button {
-        padding: 8px 16px !important;
-        font-size: 16px !important;
+        padding: 6px 12px !important;
+        font-size: 15px !important;
         font-weight: 700 !important;
         border-radius: 8px !important;
         border: 1px solid #ddd !important;
     }
-    
-    /* Pills 선택되었을 때 초록색 강조 */
-    div[data-testid="stPills"] button[data-checked="true"],
-    div[data-testid="stPills"] button[aria-pressed="true"] {
+    div[data-testid="stPills"] button[data-checked="true"] {
         background-color: #4CAF50 !important;
         color: #ffffff !important;
         border: 1px solid #4CAF50 !important;
-        box-shadow: 0px 2px 5px rgba(76, 175, 80, 0.3) !important;
+    }
+    
+    /* -----------------------------------------
+       🎚️ 4. 시간 선택 바 (원래의 통합 Bar 형태 완벽 복원 & 꽉 채우기)
+       ----------------------------------------- */
+    div[data-testid="stSegmentedControl"] {
+        width: 100% !important;
+    }
+    
+    /* 통합 바(Bar)의 전체 테두리와 배경 설정 */
+    div[data-testid="stSegmentedControl"] > div {
+        display: flex !important;
+        flex-wrap: nowrap !important; /* 줄바꿈 없이 하나의 긴 바로 유지 */
+        width: 100% !important;
+        overflow-x: auto !important;  /* 혹시 화면이 너무 좁으면 스와이프 가능하도록 */
+        background-color: #f1f3f5 !important;
+        border: 2px solid #ccc !important;
+        border-radius: 8px !important; /* 전체 모서리 둥글게 */
+        padding: 0 !important;
+        gap: 0 !important;
+        
+        /* 스크롤바 숨기기 */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    div[data-testid="stSegmentedControl"] > div::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* 🔥 핵심: 오른쪽 30% 빈 공간을 만들던 스트림릿의 투명 애니메이션 박스 삭제 */
+    div[data-testid="stSegmentedControl"] > div > :not(label) {
+        display: none !important;
+        width: 0 !important;
+        flex: 0 !important;
+    }
+    
+    /* 개별 시간 칸을 균등 분할(1/N)하여 빈틈없이 꽉 채우기 */
+    div[data-testid="stSegmentedControl"] label {
+        flex: 1 1 0% !important; /* 남는 공간 없이 균등 분할 */
+        min-width: 42px !important; /* 모바일에서 텍스트가 찌그러지지 않을 최소 너비 */
+        height: 55px !important;
+        border-right: 1px solid #ccc !important; /* 각 칸 사이의 구분선 */
+        border-radius: 0 !important; /* 타원형 X, 사각형으로 바에 딱 맞게 */
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important; /* 텍스트 가운데 정렬 */
+        cursor: pointer !important;
+    }
+    
+    /* 마지막 칸은 오른쪽 구분선 제거 */
+    div[data-testid="stSegmentedControl"] label:last-of-type {
+        border-right: none !important;
+    }
+    
+    /* 시간 텍스트 폰트 설정 */
+    div[data-testid="stSegmentedControl"] p,
+    div[data-testid="stSegmentedControl"] span {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        color: #666 !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+        letter-spacing: -0.5px !important;
+    }
+    
+    /* 시간 선택되었을 때 초록색 채우기 */
+    div[data-testid="stSegmentedControl"] label[data-checked="true"],
+    div[data-testid="stSegmentedControl"] label:has(input:checked) {
+        background-color: #4CAF50 !important;
+    }
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) p,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
+        color: #ffffff !important;
+    }
+    
+    /* 스트림릿 기본 파란색 포커스 테두리 제거 */
+    div[data-testid="stSegmentedControl"] label:focus,
+    div[data-testid="stSegmentedControl"] label:focus-within {
+        outline: none !important;
+        box-shadow: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -313,7 +399,7 @@ with tab1:
             
             if members:
                 try:
-                    # ✨ 이름 선택 (정상 작동하던 st.pills 그대로 유지)
+                    # ✨ 이름 태그 (정상적으로 줄바꿈 되어 예쁘게 표시됨)
                     pill_val = st.pills("기존 회원", options=members, key="pill_member", label_visibility="collapsed")
                 except AttributeError:
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
@@ -334,21 +420,16 @@ with tab1:
                             return f"{start_hr}~{end_hr}"
                         return f"{start_hr}~"
 
-                    # ✨ 핵심 수정! 시간 선택 바를 이름과 동일한 st.pills (다중 선택 모드)로 변경했습니다!
-                    # 모바일 화면 너비에 맞춰 자동으로 줄바꿈이 되고 여백이 남지 않습니다.
-                    selected_times = st.pills(
-                        "시간 선택",
+                    # ✨ 시간 바 복원! 다시 segmented_control을 사용하여 "하나의 통합 바" 형태로 만듭니다.
+                    raw_selection = st.segmented_control(
+                        "시간 선택 바",
                         options=available_time_slots,
                         selection_mode="multi",
                         format_func=format_time_label, 
                         label_visibility="collapsed"
                     )
-                    
-                    if not selected_times: # 반환값이 None일 경우 빈 리스트로 초기화
-                        selected_times = []
-
-                except Exception as e:
-                    # 이전 버전 호환용 (만약 st.pills의 multi 모드가 동작하지 않는 버전일 경우)
+                    selected_times = list(raw_selection) if raw_selection else []
+                except AttributeError:
                     selected_times = st.multiselect(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -359,7 +440,7 @@ with tab1:
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 모두 터치하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 터치하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
