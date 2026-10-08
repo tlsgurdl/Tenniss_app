@@ -39,74 +39,72 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 바(Segmented Control) 디자인 개선 및 꽉 차게 만들기
+       🎚️ 바(Segmented Control) 초강력 100% 꽉 채우기
        ========================================= */
-    div[data-testid="stSegmentedControl"] {
-        width: 100% !important;
-    }
-    /* 모바일 가로 유지 및 전체 너비 100% 강제 */
+    /* 1. 최상위 컨테이너 100% 강제 */
+    div[data-testid="stSegmentedControl"],
     div[data-testid="stSegmentedControl"] > div {
-        display: flex !important;
         width: 100% !important;
-        background-color: #f8f9fa !important; /* 살짝 더 부드러운 배경색 */
-        border: 2px solid #e0e0e0 !important;
-        border-radius: 12px !important; /* 모서리를 좀 더 둥글게 */
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        background-color: #f8f9fa !important;
+        border-radius: 12px !important;
         padding: 0 !important;
-        gap: 0 !important;
-        overflow: hidden !important;
     }
     
-    /* 💥 우측 빈 공간 버그 해결: Streamlit이 몰래 생성하는 투명 박스 등 레이아웃 방해 요소 숨김 */
+    /* 2. 스트림릿이 렌더링하는 불필요한 빈 박스 제거 */
     div[data-testid="stSegmentedControl"] > div > :not(label) {
         display: none !important;
+        width: 0 !important;
+        flex: 0 !important;
     }
     
-    /* ✨ 각 칸을 동일한 비율로 남는 공간 없이 꽉 채우기 (핵심) */
+    /* 3. 각 시간 버튼(라벨)이 남은 공간을 완벽하게 N빵 하도록 강제 (핵심 수정) */
     div[data-testid="stSegmentedControl"] label {
-        flex: 1 1 0px !important; /* n등분하여 공간 꽉 채우기 */
+        flex: 1 1 0px !important; /* flex 버그를 막기 위해 basis를 0px로 설정 */
+        min-width: 0 !important;  /* 글자가 길어도 뚫고 나가지 않게 조절 */
         border-right: 1px solid #e0e0e0 !important;
         border-radius: 0 !important;
         margin: 0 !important;
-        padding: 0 !important; /* 가운데 정렬을 위해 기존 패딩 제거 */
-        height: 65px !important; /* ✨ 높이 대폭 확대 (기존 55px -> 65px) */
+        padding: 0 !important;
+        height: 65px !important; /* 버튼 높이를 키워서 큼직하게 */
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: center !important; /* ✨ 글자 가운데 정렬로 예쁘게 배치 */
-        transition: all 0.2s ease-in-out !important;
-        box-sizing: border-box !important;
+        justify-content: center !important; /* 중앙 정렬 */
     }
     div[data-testid="stSegmentedControl"] label:last-child {
         border-right: none !important;
     }
     
-    /* ✨ 시간 글자 디자인 (폰트 크기 확대 및 스타일 변경) */
+    /* 4. 시간 글자 디자인 개선 */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 19px !important; /* 폰트 크기 확대 (기존 17px -> 19px) */
+        font-size: 18px !important; /* 가독성 좋은 크기 */
         font-weight: 800 !important;
-        color: #777 !important; /* 너무 진하지 않은 세련된 회색 */
+        color: #777 !important;
         margin: 0 !important;
-        letter-spacing: -0.5px !important; /* 자간을 살짝 좁혀서 깔끔하게 */
+        letter-spacing: -0.5px !important;
     }
     
-    /* 🔥 선택 시 박스 내부 효과 (입체감 추가) */
+    /* 5. 버튼이 눌렸을 때(체크)의 예쁜 디자인 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"],
     div[data-testid="stSegmentedControl"] label:has(input:checked) {
         background-color: #4CAF50 !important;
-        box-shadow: inset 0px 2px 5px rgba(0,0,0,0.15) !important; /* 눌린 듯한 자연스러운 입체감 추가 */
+        box-shadow: inset 0px 3px 6px rgba(0,0,0,0.2) !important; /* 입체감 강화 */
     }
     
-    /* 선택 시 글자색 및 그림자 (가독성 극대화) */
+    /* 눌렸을 때 글자색 흰색으로 변경 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
     div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
     div[data-testid="stSegmentedControl"] label:has(input:checked) p,
     div[data-testid="stSegmentedControl"] label:has(input:checked) span {
         color: #ffffff !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important; /* 흰 글씨가 배경에 묻히지 않도록 미세한 그림자 */
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
     }
     
-    /* Streamlit 기본 동작 방해 요소 숨김 */
+    /* 6. 파란색 포커스 테두리 등 방해요소 제거 */
     div[data-testid="stSegmentedControl"] label:focus,
     div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
@@ -384,7 +382,6 @@ with tab1:
             selected_times = []
             if available_time_slots:
                 try:
-                    # ✨ 물결 표시(~) 및 마지막 칸에만 종료 시간 표시 로직
                     def format_time_label(x):
                         start_hr = x.split(":")[0]
                         if x == available_time_slots[-1]:
@@ -401,7 +398,6 @@ with tab1:
                     )
                     selected_times = list(raw_selection) if raw_selection else []
                 except AttributeError:
-                    # 구버전 호환용
                     selected_times = st.multiselect(
                         "시간 선택 바",
                         options=available_time_slots,
