@@ -38,7 +38,7 @@ st.markdown("""
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
     
-    /* 3. 이름 태그 (Pills) 모바일 최적화 (기존 유지) */
+    /* 3. 이름 태그(Pills) 모바일 최적화 */
     div[data-testid="stPills"] button {
         padding: 6px 12px !important;
         font-size: 15px !important;
@@ -53,77 +53,73 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 4. 시간 선택 바 (글자 크기 강제 확대 및 스와이프 지원)
+       🎚️ 4. 시간 선택 바 (스와이프 제거! 화면 100% 균등 분할)
        ========================================= */
     div[data-testid="stSegmentedControl"] {
         width: 100% !important;
     }
     
-    /* 전체 바 형태 유지 및 모바일 좌우 스크롤(스와이프) 적용 */
+    /* 껍데기: 스와이프 기능(overflow)을 끄고 딱 맞게 잠금 */
     div[data-testid="stSegmentedControl"] > div {
         display: flex !important;
         flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important; /* iOS 스와이프 부드럽게 */
+        overflow: hidden !important; /* ✨ 화면 밖으로 밀리는 스크롤/스와이프 완벽 차단 */
         width: 100% !important;
         background-color: #f1f3f5 !important;
         border: 2px solid #ccc !important;
         border-radius: 8px !important;
         padding: 0 !important;
-        
-        /* 모바일에서 스크롤바가 화면을 가리지 않도록 숨김 */
-        -ms-overflow-style: none; 
-        scrollbar-width: none;
-    }
-    div[data-testid="stSegmentedControl"] > div::-webkit-scrollbar {
-        display: none !important;
     }
     
-    /* 불필요한 빈 여백 요소 강제 삭제 */
+    /* 우측 여백을 만드는 보이지 않는 애니메이션 박스 강제 삭제 */
     div[data-testid="stSegmentedControl"] > div > :not(label) {
         display: none !important;
+        width: 0 !important;
     }
     
-    /* 개별 시간 버튼을 큼직하게 팽창! */
+    /* ✨ 핵심: 버튼 크기 고정이 아니라 1/N 등분으로 공간을 알아서 나눠 가지게 설정 */
     div[data-testid="stSegmentedControl"] label {
-        flex: 1 0 auto !important;
-        min-width: 75px !important; /* ✨ 이 너비를 보장해서 글자가 찌그러지지 않게 만듦 */
-        height: 60px !important; /* ✨ 높이 상향 */
+        flex: 1 1 0% !important; /* 남는 공간 없이 무조건 N등분 꽉 채움 */
+        min-width: 0 !important; /* 좁은 모바일에서도 찌그러질 수 있게 허용 */
+        height: 55px !important; 
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         border-right: 1px solid #ccc !important;
-        border-radius: 0 !important; /* 타원형 금지, 네모반듯하게 */
-        padding: 0 5px !important;
+        border-radius: 0 !important;
         margin: 0 !important;
+        padding: 0 !important;
         cursor: pointer !important;
     }
     div[data-testid="stSegmentedControl"] label:last-child {
         border-right: none !important;
     }
     
-    /* ✨ 가장 중요한 글자 크기 강제 확대 (18px) */
+    /* 시간 텍스트 설정 (최적의 가독성을 위한 16px) */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 18px !important; 
-        font-weight: 900 !important; /* 가장 굵게 */
-        color: #444 !important;
-        white-space: nowrap !important;
-        letter-spacing: -0.5px !important;
+        font-size: 16px !important; /* 8칸일 때도 모바일에서 안 잘리는 가장 예쁜 크기 */
+        font-weight: 900 !important;
+        color: #555 !important;
+        white-space: nowrap !important; /* 줄바꿈 방지 */
+        letter-spacing: -0.5px !important; /* 글자 사이 간격을 살짝 좁혀서 자리 확보 */
         margin: 0 !important;
     }
     
-    /* 선택되었을 때 초록색 채우기 */
+    /* 선택되었을 때 초록색 채우기 및 흰색 글씨 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"],
     div[data-testid="stSegmentedControl"] label:has(input:checked) {
         background-color: #4CAF50 !important;
     }
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] *,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) * {
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
+    div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) p,
+    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
         color: #ffffff !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
     }
     
-    /* 포커스 효과 제거 */
+    /* 포커스 테두리 제거 */
     div[data-testid="stSegmentedControl"] label:focus,
     div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
@@ -399,28 +395,35 @@ with tab1:
             
             selected_times = []
             if available_time_slots:
-                def format_time_label(x):
-                    start_hr = x.split(":")[0]
-                    if x == available_time_slots[-1]:
-                        end_hr = x.split(" ~ ")[1].split(":")[0]
-                        return f"{start_hr}~{end_hr}"
-                    return f"{start_hr}~"
+                try:
+                    def format_time_label(x):
+                        start_hr = x.split(":")[0]
+                        if x == available_time_slots[-1]:
+                            end_hr = x.split(" ~ ")[1].split(":")[0]
+                            return f"{start_hr}~{end_hr}"
+                        return f"{start_hr}~"
 
-                # ✨ 핵심: 예외처리(try-except)를 제거하여 최신 기능을 강제합니다.
-                # (만약 Streamlit 최신 버전이 아니면 에러가 나면서 업데이트 필요성을 확실히 알려줍니다.)
-                raw_selection = st.segmented_control(
-                    "시간 선택 바",
-                    options=available_time_slots,
-                    selection_mode="multi",
-                    format_func=format_time_label, 
-                    label_visibility="collapsed"
-                )
-                selected_times = list(raw_selection) if raw_selection else []
+                    # 시간 선택 바 UI 컴포넌트 렌더링
+                    raw_selection = st.segmented_control(
+                        "시간 선택 바",
+                        options=available_time_slots,
+                        selection_mode="multi",
+                        format_func=format_time_label, 
+                        label_visibility="collapsed"
+                    )
+                    selected_times = list(raw_selection) if raw_selection else []
+                except AttributeError:
+                    selected_times = st.multiselect(
+                        "시간 선택 바",
+                        options=available_time_slots,
+                        format_func=lambda x: f"{x.split(':')[0]}~{x.split(' ~ ')[1].split(':')[0]}시",
+                        label_visibility="collapsed"
+                    )
                 
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>모바일에서는 시간을 좌우로 밀어서(스와이프) 확인하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 터치하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
