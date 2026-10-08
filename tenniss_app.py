@@ -43,70 +43,59 @@ st.markdown("""
     }
     
     /* -----------------------------------------
-       🎚️ 3. 막대형 시간 선택 바 (모바일 스와이프 지원 & PC 꽉참)
+       🎚️ 3. 참석 시간 바: 모바일 반응형 "버튼 그리드" 방식
        ----------------------------------------- */
     div[data-testid="stSegmentedControl"] {
         width: 100% !important;
     }
     
-    /* 메인 래퍼: 모바일 가로 스크롤 활성화 */
+    /* 메인 래퍼: 자동 줄바꿈(wrap) 활성화 */
     div[data-testid="stSegmentedControl"] > div {
         display: flex !important;
-        flex-wrap: nowrap !important;
+        flex-wrap: wrap !important; /* ✨ 모바일에서 좁으면 자동으로 다음 줄로 넘어가서 꽉 채움 */
         width: 100% !important;
-        overflow-x: auto !important; /* ✨ 모바일 스와이프 핵심 */
-        overflow-y: hidden !important;
-        background-color: #f8f9fa !important;
-        border: 2px solid #e0e0e0 !important;
-        border-radius: 12px !important;
+        background-color: transparent !important;
+        border: none !important;
         padding: 0 !important;
-        gap: 0 !important;
-        /* 스크롤바 가리기 (깔끔한 UI) */
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-    div[data-testid="stSegmentedControl"] > div::-webkit-scrollbar {
-        display: none;
+        gap: 6px !important; /* 버튼 사이의 간격 */
     }
     
-    /* 불필요한 투명 요소 제거 */
+    /* 💥 30% 우측 여백의 주범인 스트림릿 숨겨진 애니메이션 박스 삭제 */
     div[data-testid="stSegmentedControl"] > div > :not(label) {
         display: none !important;
     }
     
-    /* 버튼(Label) 설정 */
+    /* 개별 버튼(Label) 설정 */
     div[data-testid="stSegmentedControl"] label {
-        flex: 1 0 auto !important; /* ✨ PC에서는 꽉차게 늘어나고, 모바일에서는 최소너비 유지 */
-        min-width: 65px !important; /* ✨ 모바일 터치 영역 보장 (이 크기 밑으로 안 줄어듦) */
-        height: 60px !important;
-        border-right: 1px solid #e0e0e0 !important;
-        border-radius: 0 !important;
+        flex: 1 1 calc(18% - 6px) !important; /* 모바일에서 5개씩 꽉 차도록 비율 설정 */
+        min-width: 60px !important; /* 너무 작아지지 않게 최소 크기 보장 */
+        height: 55px !important;
+        background-color: #f8f9fa !important;
+        border: 1px solid #dcdcdc !important;
+        border-radius: 8px !important; /* 통합 바 형태를 버리고 개별 버튼처럼 둥글게 */
         margin: 0 !important;
-        padding: 0 4px !important;
+        padding: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
     }
-    div[data-testid="stSegmentedControl"] label:last-of-type {
-        border-right: none !important;
-    }
     
     /* 시간 텍스트 설정 */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 16px !important; /* 모바일에 최적화된 크기 */
+        font-size: 16px !important;
         font-weight: 800 !important;
-        color: #777 !important;
+        color: #555 !important;
         margin: 0 !important;
-        white-space: nowrap !important; /* 줄바꿈 방지 */
     }
     
-    /* 선택됨(Checked) 상태 */
+    /* 선택됨(Checked) 상태 디자인 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"],
     div[data-testid="stSegmentedControl"] label:has(input:checked) {
         background-color: #4CAF50 !important;
-        box-shadow: inset 0px 3px 6px rgba(0,0,0,0.15) !important;
+        border-color: #4CAF50 !important;
+        box-shadow: 0px 3px 6px rgba(76, 175, 80, 0.25) !important; /* 눌렸을 때 예쁜 그림자 */
     }
     div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
     div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
@@ -116,7 +105,7 @@ st.markdown("""
         text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
     }
     
-    /* 기본 포커스 효과 제거 */
+    /* 기본 포커스(파란 테두리) 효과 제거 */
     div[data-testid="stSegmentedControl"] label:focus,
     div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
@@ -380,7 +369,7 @@ with tab1:
             
             if members:
                 try:
-                    # ✨ 이름 태그(st.pills) 복구 완료! 이제 예전처럼 여러 개가 예쁘게 나열됩니다.
+                    # ✨ 이름 태그(st.pills)는 원상 복구되어 모바일에서 자연스럽게 여러 줄로 표시됩니다.
                     pill_val = st.pills("기존 회원", options=members, key="pill_member", label_visibility="collapsed")
                 except AttributeError:
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
@@ -401,7 +390,7 @@ with tab1:
                             return f"{start_hr}~{end_hr}"
                         return f"{start_hr}~"
 
-                    # ✨ 시간 바 복원! PC에선 꽉 차고, 모바일에선 좌우 스크롤(스와이프)을 지원합니다.
+                    # ✨ 시간 바는 다시 원래의 st.segmented_control을 사용합니다.
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -421,7 +410,7 @@ with tab1:
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 터치하세요. 모바일에서는 좌우로 스와이프 할 수 있습니다.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 터치하세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
