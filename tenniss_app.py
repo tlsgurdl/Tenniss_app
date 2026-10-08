@@ -39,73 +39,90 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 바(Segmented Control) 초강력 100% 꽉 채우기
+       🎚️ 바(Segmented Control) 초강력 100% 꽉 채우기 (Grid 적용)
        ========================================= */
-    /* 1. 최상위 컨테이너 100% 강제 */
-    div[data-testid="stSegmentedControl"],
-    div[data-testid="stSegmentedControl"] > div {
+    /* 1. 최상위 컨테이너 강제 100% */
+    div[data-testid="stSegmentedControl"] {
         width: 100% !important;
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
+    }
+    
+    /* 2. Grid를 사용하여 무조건 100% 꽉 차게 N등분 (가장 강력한 방법) */
+    div[data-testid="stSegmentedControl"] > div {
+        display: grid !important;
+        grid-auto-columns: 1fr !important; /* 모든 칸을 동일한 비율로 설정 */
+        grid-auto-flow: column !important; /* 가로로 나열 */
+        width: 100% !important;
         background-color: #f8f9fa !important;
         border-radius: 12px !important;
+        border: 2px solid #e0e0e0 !important;
         padding: 0 !important;
+        gap: 0 !important;
+        overflow: hidden !important;
     }
-    
-    /* 2. 스트림릿이 렌더링하는 불필요한 빈 박스 제거 */
-    div[data-testid="stSegmentedControl"] > div > :not(label) {
-        display: none !important;
-        width: 0 !important;
-        flex: 0 !important;
-    }
-    
-    /* 3. 각 시간 버튼(라벨)이 남은 공간을 완벽하게 N빵 하도록 강제 (핵심 수정) */
-    div[data-testid="stSegmentedControl"] label {
-        flex: 1 1 0px !important; /* flex 버그를 막기 위해 basis를 0px로 설정 */
-        min-width: 0 !important;  /* 글자가 길어도 뚫고 나가지 않게 조절 */
+
+    /* 3. Streamlit 버전에 따라 버튼이 label일 수도, button일 수도 있음. 모두 타겟팅! */
+    div[data-testid="stSegmentedControl"] label,
+    div[data-testid="stSegmentedControl"] button {
+        width: 100% !important;
+        height: 65px !important; /* 높이 확대 */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important; /* 가운데 정렬 */
         border-right: 1px solid #e0e0e0 !important;
         border-radius: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
-        height: 65px !important; /* 버튼 높이를 키워서 큼직하게 */
         cursor: pointer !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important; /* 중앙 정렬 */
+        background-color: transparent !important;
+        border-top: none !important;
+        border-bottom: none !important;
+        border-left: none !important;
     }
-    div[data-testid="stSegmentedControl"] label:last-child {
+
+    /* 마지막 칸 테두리 제거 */
+    div[data-testid="stSegmentedControl"] label:last-child,
+    div[data-testid="stSegmentedControl"] button:last-child {
         border-right: none !important;
     }
     
-    /* 4. 시간 글자 디자인 개선 */
+    /* 4. 텍스트 디자인 */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 18px !important; /* 가독성 좋은 크기 */
+        font-size: 19px !important;
         font-weight: 800 !important;
         color: #777 !important;
         margin: 0 !important;
         letter-spacing: -0.5px !important;
     }
-    
-    /* 5. 버튼이 눌렸을 때(체크)의 예쁜 디자인 */
+
+    /* 5. 선택되었을 때의 입체감 및 색상 (다양한 속성값 모두 대응) */
     div[data-testid="stSegmentedControl"] label[data-checked="true"],
-    div[data-testid="stSegmentedControl"] label:has(input:checked) {
+    div[data-testid="stSegmentedControl"] label:has(input:checked),
+    div[data-testid="stSegmentedControl"] button[data-checked="true"],
+    div[data-testid="stSegmentedControl"] button[aria-pressed="true"],
+    div[data-testid="stSegmentedControl"] button[aria-selected="true"] {
         background-color: #4CAF50 !important;
-        box-shadow: inset 0px 3px 6px rgba(0,0,0,0.2) !important; /* 입체감 강화 */
+        box-shadow: inset 0px 3px 6px rgba(0,0,0,0.2) !important;
     }
-    
-    /* 눌렸을 때 글자색 흰색으로 변경 */
+
+    /* 6. 선택 시 글자색 흰색으로 변경 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
     div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
     div[data-testid="stSegmentedControl"] label:has(input:checked) p,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
+    div[data-testid="stSegmentedControl"] label:has(input:checked) span,
+    div[data-testid="stSegmentedControl"] button[data-checked="true"] p,
+    div[data-testid="stSegmentedControl"] button[data-checked="true"] span,
+    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] p,
+    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] span,
+    div[data-testid="stSegmentedControl"] button[aria-selected="true"] p,
+    div[data-testid="stSegmentedControl"] button[aria-selected="true"] span {
         color: #ffffff !important;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
     }
     
-    /* 6. 파란색 포커스 테두리 등 방해요소 제거 */
+    /* 7. 스트림릿 기본 파란색 포커스 테두리 등 방해꾼 제거 */
     div[data-testid="stSegmentedControl"] label:focus,
+    div[data-testid="stSegmentedControl"] button:focus,
     div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
         box-shadow: none !important;
