@@ -15,7 +15,9 @@ st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="center
 
 st.markdown("""
 <style>
-    /* 입력창 디자인 고정 */
+    /* -----------------------------------------
+       1. 텍스트 입력창 디자인
+       ----------------------------------------- */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
         border: 2px solid #000000 !important;
         border-radius: 8px !important;
@@ -31,98 +33,91 @@ st.markdown("""
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
     
-    /* Expander 그림자 */
+    /* -----------------------------------------
+       2. Expander 그림자 효과
+       ----------------------------------------- */
     div[data-testid="stExpander"] {
         border: 1px solid #e0e0e0;
         border-radius: 12px;
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
     }
     
-    /* =========================================
-       🎚️ 바(Segmented Control) 초강력 100% 꽉 채우기 (Grid 적용)
-       ========================================= */
-    /* 1. 최상위 컨테이너 강제 100% */
+    /* -----------------------------------------
+       🎚️ 3. 막대형 시간 선택 바 (모바일 스와이프 지원 & PC 꽉참)
+       ----------------------------------------- */
     div[data-testid="stSegmentedControl"] {
         width: 100% !important;
     }
     
-    /* 2. Grid를 사용하여 무조건 100% 꽉 차게 N등분 (가장 강력한 방법) */
+    /* 메인 래퍼: 모바일 가로 스크롤 활성화 */
     div[data-testid="stSegmentedControl"] > div {
-        display: grid !important;
-        grid-auto-columns: 1fr !important; /* 모든 칸을 동일한 비율로 설정 */
-        grid-auto-flow: column !important; /* 가로로 나열 */
+        display: flex !important;
+        flex-wrap: nowrap !important;
         width: 100% !important;
+        overflow-x: auto !important; /* ✨ 모바일 스와이프 핵심 */
+        overflow-y: hidden !important;
         background-color: #f8f9fa !important;
-        border-radius: 12px !important;
         border: 2px solid #e0e0e0 !important;
+        border-radius: 12px !important;
         padding: 0 !important;
         gap: 0 !important;
-        overflow: hidden !important;
+        /* 스크롤바 가리기 (깔끔한 UI) */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
-
-    /* 3. Streamlit 버전에 따라 버튼이 label일 수도, button일 수도 있음. 모두 타겟팅! */
-    div[data-testid="stSegmentedControl"] label,
-    div[data-testid="stSegmentedControl"] button {
-        width: 100% !important;
-        height: 65px !important; /* 높이 확대 */
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important; /* 가운데 정렬 */
+    div[data-testid="stSegmentedControl"] > div::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* 불필요한 투명 요소 제거 */
+    div[data-testid="stSegmentedControl"] > div > :not(label) {
+        display: none !important;
+    }
+    
+    /* 버튼(Label) 설정 */
+    div[data-testid="stSegmentedControl"] label {
+        flex: 1 0 auto !important; /* ✨ PC에서는 꽉차게 늘어나고, 모바일에서는 최소너비 유지 */
+        min-width: 65px !important; /* ✨ 모바일 터치 영역 보장 (이 크기 밑으로 안 줄어듦) */
+        height: 60px !important;
         border-right: 1px solid #e0e0e0 !important;
         border-radius: 0 !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 0 4px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         cursor: pointer !important;
-        background-color: transparent !important;
-        border-top: none !important;
-        border-bottom: none !important;
-        border-left: none !important;
     }
-
-    /* 마지막 칸 테두리 제거 */
-    div[data-testid="stSegmentedControl"] label:last-child,
-    div[data-testid="stSegmentedControl"] button:last-child {
+    div[data-testid="stSegmentedControl"] label:last-of-type {
         border-right: none !important;
     }
     
-    /* 4. 텍스트 디자인 */
+    /* 시간 텍스트 설정 */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 19px !important;
+        font-size: 16px !important; /* 모바일에 최적화된 크기 */
         font-weight: 800 !important;
         color: #777 !important;
         margin: 0 !important;
-        letter-spacing: -0.5px !important;
+        white-space: nowrap !important; /* 줄바꿈 방지 */
     }
-
-    /* 5. 선택되었을 때의 입체감 및 색상 (다양한 속성값 모두 대응) */
+    
+    /* 선택됨(Checked) 상태 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"],
-    div[data-testid="stSegmentedControl"] label:has(input:checked),
-    div[data-testid="stSegmentedControl"] button[data-checked="true"],
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"],
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"] {
+    div[data-testid="stSegmentedControl"] label:has(input:checked) {
         background-color: #4CAF50 !important;
-        box-shadow: inset 0px 3px 6px rgba(0,0,0,0.2) !important;
+        box-shadow: inset 0px 3px 6px rgba(0,0,0,0.15) !important;
     }
-
-    /* 6. 선택 시 글자색 흰색으로 변경 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
     div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
     div[data-testid="stSegmentedControl"] label:has(input:checked) p,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) span,
-    div[data-testid="stSegmentedControl"] button[data-checked="true"] p,
-    div[data-testid="stSegmentedControl"] button[data-checked="true"] span,
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] p,
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] span,
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"] p,
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"] span {
+    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
         color: #ffffff !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important;
     }
     
-    /* 7. 스트림릿 기본 파란색 포커스 테두리 등 방해꾼 제거 */
+    /* 기본 포커스 효과 제거 */
     div[data-testid="stSegmentedControl"] label:focus,
-    div[data-testid="stSegmentedControl"] button:focus,
     div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
         box-shadow: none !important;
@@ -210,7 +205,6 @@ today_str = today_dt.strftime('%Y-%m-%d')
 today_schedule = {} 
 monthly_schedule_dict = {} 
 
-# 주말/공휴일 오늘 스케줄 초기 세팅
 fixed_today = get_weekend_schedule(today_dt)
 for h in range(13, 23):
     ui_time = time_slots_mapping[f"{h}:00"]
@@ -386,6 +380,7 @@ with tab1:
             
             if members:
                 try:
+                    # ✨ 이름 태그(st.pills) 복구 완료! 이제 예전처럼 여러 개가 예쁘게 나열됩니다.
                     pill_val = st.pills("기존 회원", options=members, key="pill_member", label_visibility="collapsed")
                 except AttributeError:
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
@@ -406,6 +401,7 @@ with tab1:
                             return f"{start_hr}~{end_hr}"
                         return f"{start_hr}~"
 
+                    # ✨ 시간 바 복원! PC에선 꽉 차고, 모바일에선 좌우 스크롤(스와이프)을 지원합니다.
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
@@ -425,7 +421,7 @@ with tab1:
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 터치하세요.</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>참석할 시간을 막대에서 모두 터치하세요. 모바일에서는 좌우로 스와이프 할 수 있습니다.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
