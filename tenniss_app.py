@@ -39,80 +39,74 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 바(Segmented Control) 모바일 완벽 최적화
+       🎚️ 바(Segmented Control) 디자인 개선 및 꽉 차게 만들기
        ========================================= */
     div[data-testid="stSegmentedControl"] {
         width: 100% !important;
     }
-    /* 모바일 가로 유지 (줄바꿈 방지) 및 테두리 설정 */
+    /* 모바일 가로 유지 및 전체 너비 100% 강제 */
     div[data-testid="stSegmentedControl"] > div {
         display: flex !important;
-        flex-wrap: nowrap !important; 
         width: 100% !important;
-        background-color: #f1f3f5 !important;
-        border: 2px solid #ccc !important;
-        border-radius: 8px !important;
+        background-color: #f8f9fa !important; /* 살짝 더 부드러운 배경색 */
+        border: 2px solid #e0e0e0 !important;
+        border-radius: 12px !important; /* 모서리를 좀 더 둥글게 */
         padding: 0 !important;
         gap: 0 !important;
         overflow: hidden !important;
     }
     
-    /* 💥 우측 빈 공간 버그 해결: Streamlit이 몰래 생성하는 투명 박스 삭제 */
+    /* 💥 우측 빈 공간 버그 해결: Streamlit이 몰래 생성하는 투명 박스 등 레이아웃 방해 요소 숨김 */
     div[data-testid="stSegmentedControl"] > div > :not(label) {
         display: none !important;
-        width: 0 !important;
-        flex: 0 !important;
-        position: absolute !important;
     }
     
-    /* 각 칸의 비율 동일 설정 및 정렬 (높이 20% 확대 적용) */
+    /* ✨ 각 칸을 동일한 비율로 남는 공간 없이 꽉 채우기 (핵심) */
     div[data-testid="stSegmentedControl"] label {
-        flex-grow: 1 !important;
-        flex-shrink: 1 !important;
-        flex-basis: 0% !important;
-        max-width: none !important;
-        min-width: 0 !important;
-        border-right: 1px solid #ccc !important;
+        flex: 1 1 0px !important; /* n등분하여 공간 꽉 채우기 */
+        border-right: 1px solid #e0e0e0 !important;
         border-radius: 0 !important;
         margin: 0 !important;
-        padding: 0 0 0 6px !important; /* 눈금 효과를 위해 왼쪽으로 바짝 붙임 */
-        height: 55px !important; /* ✨ 기존 45px -> 55px로 터치 영역 20% 확대 */
+        padding: 0 !important; /* 가운데 정렬을 위해 기존 패딩 제거 */
+        height: 65px !important; /* ✨ 높이 대폭 확대 (기존 55px -> 65px) */
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: flex-start !important; /* 왼쪽 정렬 */
-        transition: background-color 0.15s ease !important;
+        justify-content: center !important; /* ✨ 글자 가운데 정렬로 예쁘게 배치 */
+        transition: all 0.2s ease-in-out !important;
         box-sizing: border-box !important;
     }
     div[data-testid="stSegmentedControl"] label:last-child {
         border-right: none !important;
     }
     
-    /* 시간 글자 디자인 (폰트 크기 확대 적용) */
+    /* ✨ 시간 글자 디자인 (폰트 크기 확대 및 스타일 변경) */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 17px !important; /* 가시성 강화 */
-        font-weight: 900 !important;
-        color: #666 !important;
+        font-size: 19px !important; /* 폰트 크기 확대 (기존 17px -> 19px) */
+        font-weight: 800 !important;
+        color: #777 !important; /* 너무 진하지 않은 세련된 회색 */
         margin: 0 !important;
+        letter-spacing: -0.5px !important; /* 자간을 살짝 좁혀서 깔끔하게 */
     }
     
-    /* 🔥 선택 시 박스 내부 녹색 채우기 및 글자색 흰색 변환 */
+    /* 🔥 선택 시 박스 내부 효과 (입체감 추가) */
     div[data-testid="stSegmentedControl"] label[data-checked="true"],
     div[data-testid="stSegmentedControl"] label:has(input:checked) {
         background-color: #4CAF50 !important;
+        box-shadow: inset 0px 2px 5px rgba(0,0,0,0.15) !important; /* 눌린 듯한 자연스러운 입체감 추가 */
     }
+    
+    /* 선택 시 글자색 및 그림자 (가독성 극대화) */
     div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
     div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
     div[data-testid="stSegmentedControl"] label:has(input:checked) p,
     div[data-testid="stSegmentedControl"] label:has(input:checked) span {
         color: #ffffff !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2) !important; /* 흰 글씨가 배경에 묻히지 않도록 미세한 그림자 */
     }
     
-    /* Streamlit 기본 동작(애니메이션 배경, 붉은 테두리 등) 숨김 */
-    div[data-testid="stSegmentedControl"] div[data-baseweb="tag"] {
-        display: none !important;
-    }
+    /* Streamlit 기본 동작 방해 요소 숨김 */
     div[data-testid="stSegmentedControl"] label:focus,
     div[data-testid="stSegmentedControl"] label:focus-within {
         outline: none !important;
@@ -663,7 +657,7 @@ with tab2:
                     cls_7 = "cell-booked" if is_7 else "cell-empty"
                     cls_8 = "cell-booked" if is_8 else "cell-empty"
                     
-                    txt_color = "#ffffff" if is_6 else "#666666"
+                    txt_color = "#ffffff" if is_6 else "cell-empty"
                     font_weight = "bold" if is_6 else "normal"
                     
                     content_html += f"<tr>"
