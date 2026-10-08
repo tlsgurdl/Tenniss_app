@@ -39,91 +39,66 @@ st.markdown("""
     }
     
     /* =========================================
-       🎚️ 바(Segmented Control) 초강력 100% 꽉 채우기 (Grid 적용)
+       🎚️ 커스텀 시간 선택 바 (100% 꽉 채우는 네이티브 버튼 그리드)
        ========================================= */
-    /* 1. 최상위 컨테이너 강제 100% */
-    div[data-testid="stSegmentedControl"] {
+    /* 컨테이너 가로 배열 강제 및 모서리 둥글게 */
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) div[data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        gap: 0px !important;
         width: 100% !important;
-    }
-    
-    /* 2. Grid를 사용하여 무조건 100% 꽉 차게 N등분 (가장 강력한 방법) */
-    div[data-testid="stSegmentedControl"] > div {
-        display: grid !important;
-        grid-auto-columns: 1fr !important; /* 모든 칸을 동일한 비율로 설정 */
-        grid-auto-flow: column !important; /* 가로로 나열 */
-        width: 100% !important;
-        background-color: #f8f9fa !important;
-        border-radius: 12px !important;
         border: 2px solid #e0e0e0 !important;
-        padding: 0 !important;
-        gap: 0 !important;
+        border-radius: 12px !important;
+        background-color: #f8f9fa !important;
         overflow: hidden !important;
     }
 
-    /* 3. Streamlit 버전에 따라 버튼이 label일 수도, button일 수도 있음. 모두 타겟팅! */
-    div[data-testid="stSegmentedControl"] label,
-    div[data-testid="stSegmentedControl"] button {
+    /* 각 버튼 칸 1:1 비율 균등 분할 */
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) div[data-testid="column"] {
+        flex: 1 1 0px !important;
+        min-width: 0 !important;
+    }
+
+    /* 버튼 기본 스타일 완벽 초기화 및 디자인 덮어쓰기 */
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) button {
         width: 100% !important;
-        height: 65px !important; /* 높이 확대 */
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important; /* 가운데 정렬 */
-        border-right: 1px solid #e0e0e0 !important;
+        height: 65px !important;
         border-radius: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        cursor: pointer !important;
+        border: none !important;
+        border-right: 1px solid #e0e0e0 !important;
         background-color: transparent !important;
-        border-top: none !important;
-        border-bottom: none !important;
-        border-left: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     /* 마지막 칸 테두리 제거 */
-    div[data-testid="stSegmentedControl"] label:last-child,
-    div[data-testid="stSegmentedControl"] button:last-child {
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) div[data-testid="column"]:last-child button {
         border-right: none !important;
     }
-    
-    /* 4. 텍스트 디자인 */
-    div[data-testid="stSegmentedControl"] p,
-    div[data-testid="stSegmentedControl"] span {
+
+    /* 버튼 안의 텍스트 설정 */
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) button p {
         font-size: 19px !important;
         font-weight: 800 !important;
         color: #777 !important;
-        margin: 0 !important;
         letter-spacing: -0.5px !important;
+        margin: 0 !important;
     }
 
-    /* 5. 선택되었을 때의 입체감 및 색상 (다양한 속성값 모두 대응) */
-    div[data-testid="stSegmentedControl"] label[data-checked="true"],
-    div[data-testid="stSegmentedControl"] label:has(input:checked),
-    div[data-testid="stSegmentedControl"] button[data-checked="true"],
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"],
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"] {
+    /* 선택된 버튼(Primary) 색상 및 효과 */
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) button[kind="primary"] {
         background-color: #4CAF50 !important;
         box-shadow: inset 0px 3px 6px rgba(0,0,0,0.2) !important;
     }
 
-    /* 6. 선택 시 글자색 흰색으로 변경 */
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) p,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) span,
-    div[data-testid="stSegmentedControl"] button[data-checked="true"] p,
-    div[data-testid="stSegmentedControl"] button[data-checked="true"] span,
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] p,
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] span,
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"] p,
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"] span {
+    /* 선택된 버튼 텍스트 흰색 */
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) button[kind="primary"] p {
         color: #ffffff !important;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
     }
-    
-    /* 7. 스트림릿 기본 파란색 포커스 테두리 등 방해꾼 제거 */
-    div[data-testid="stSegmentedControl"] label:focus,
-    div[data-testid="stSegmentedControl"] button:focus,
-    div[data-testid="stSegmentedControl"] label:focus-within {
+
+    /* 파란색 테두리 등 스트림릿 기본 포커스 효과 끄기 */
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) button:focus,
+    div[data-testid="stVerticalBlock"]:has(.custom-time-bar) button:active {
         outline: none !important;
         box-shadow: none !important;
     }
@@ -210,7 +185,6 @@ today_str = today_dt.strftime('%Y-%m-%d')
 today_schedule = {} 
 monthly_schedule_dict = {} 
 
-# 주말/공휴일 오늘 스케줄 초기 세팅
 fixed_today = get_weekend_schedule(today_dt)
 for h in range(13, 23):
     ui_time = time_slots_mapping[f"{h}:00"]
@@ -308,9 +282,14 @@ if "view_year" not in st.session_state:
 if "view_month" not in st.session_state:
     st.session_state.view_month = today_dt.month
 
+# ✨ 세션에 커스텀 버튼용 상태를 저장하여 클릭을 기억합니다
+if "selected_times" not in st.session_state:
+    st.session_state.selected_times = set()
+
 if st.session_state.clear_input:
     if "pill_member" in st.session_state:
         st.session_state.pill_member = None
+    st.session_state.selected_times = set() # ✨ 초기화 시 선택된 시간도 초기화
     st.session_state.clear_input = False
 
 def fetch_data():
@@ -398,29 +377,35 @@ with tab1:
             
             selected_times = []
             if available_time_slots:
-                try:
-                    def format_time_label(x):
-                        start_hr = x.split(":")[0]
-                        if x == available_time_slots[-1]:
-                            end_hr = x.split(" ~ ")[1].split(":")[0]
-                            return f"{start_hr}~{end_hr}"
-                        return f"{start_hr}~"
+                # 🚀 CSS 우회 솔루션: st.segmented_control 대신 st.columns로 완벽한 커스텀 그리드를 만듭니다!
+                with st.container():
+                    st.markdown('<div class="custom-time-bar"></div>', unsafe_allow_html=True)
+                    cols = st.columns(len(available_time_slots))
+                    
+                    for i, time_slot in enumerate(available_time_slots):
+                        # 텍스트 포맷팅 (마지막 칸만 종료 시간 표시)
+                        start_hr = time_slot.split(":")[0]
+                        if time_slot == available_time_slots[-1]:
+                            end_hr = time_slot.split(" ~ ")[1].split(":")[0]
+                            label_txt = f"{start_hr}~{end_hr}"
+                        else:
+                            label_txt = f"{start_hr}~"
 
-                    raw_selection = st.segmented_control(
-                        "시간 선택 바",
-                        options=available_time_slots,
-                        selection_mode="multi",
-                        format_func=format_time_label, 
-                        label_visibility="collapsed"
-                    )
-                    selected_times = list(raw_selection) if raw_selection else []
-                except AttributeError:
-                    selected_times = st.multiselect(
-                        "시간 선택 바",
-                        options=available_time_slots,
-                        format_func=lambda x: f"{x.split(':')[0]}~{x.split(' ~ ')[1].split(':')[0]}시",
-                        label_visibility="collapsed"
-                    )
+                        # 현재 버튼이 클릭된 상태인지 확인
+                        is_selected = time_slot in st.session_state.selected_times
+                        btn_type = "primary" if is_selected else "secondary"
+
+                        # 각 칸에 버튼 렌더링
+                        with cols[i]:
+                            if st.button(label_txt, type=btn_type, use_container_width=True, key=f"time_{time_slot}"):
+                                if is_selected:
+                                    st.session_state.selected_times.remove(time_slot)
+                                else:
+                                    st.session_state.selected_times.add(time_slot)
+                                st.rerun() # 버튼을 누르면 화면을 갱신하여 초록색으로 바꿉니다
+                
+                # 집계된 리스트 형태로 묶어줍니다
+                selected_times = list(st.session_state.selected_times)
                 
                 if selected_times:
                     st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
