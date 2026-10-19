@@ -104,7 +104,7 @@ st.markdown("""
         flex: 1 1 0% !important;
         width: 100% !important;
         min-width: 0 !important;
-        height: 68px !important;
+        height: 52px !important;
         margin: 0 !important;
         padding: 0 2px !important;
         border: none !important;
