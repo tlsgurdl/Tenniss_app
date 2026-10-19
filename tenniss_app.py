@@ -9,16 +9,17 @@ import re
 import holidays 
 
 # ==========================================
-# 🎨 0. 극강의 UI/UX CSS 강제 주입
+# 🎨 0. 극강의 UI/UX CSS 강제 주입 (실제 DOM 구조 완벽 반영)
 # ==========================================
 st.set_page_config(page_title="고촌 테니스클럽 출석부", layout="centered", page_icon="🎾")
 
 st.markdown("""
 <style>
     /* -----------------------------------------
-       1. 텍스트 입력창 디자인 고정
+       1. 텍스트 입력창 디자인 고정 (최신 DOM 대응)
        ----------------------------------------- */
-    div[data-testid="stTextInput"] div[data-baseweb="input"] {
+    div[data-testid="stTextInput"] div[data-baseweb="input"],
+    div[data-testid="stTextInput"] div[data-testid="stTextInputRootElement"] {
         border: 2px solid #000000 !important;
         border-radius: 8px !important;
         box-shadow: 2px 2px 6px rgba(0,0,0,0.15) !important;
@@ -28,7 +29,8 @@ st.markdown("""
         color: #000000 !important;
         font-weight: bold !important;
     }
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stTextInput"] div[data-testid="stTextInputRootElement"]:focus-within {
         border: 2.5px solid #4CAF50 !important;
         box-shadow: 2px 2px 12px rgba(76, 175, 80, 0.4) !important;
     }
@@ -43,45 +45,53 @@ st.markdown("""
     }
     
     /* -----------------------------------------
-       3. 이름 태그 (Pills) 모바일 최적화
+       3. 이름 태그 (Pills) 모바일 최적화 (data-variant="pills" 타겟팅)
        ----------------------------------------- */
-    div[data-testid="stPills"] button {
+    div.st-key-pill_member,
+    div.st-key-pill_member > div[data-testid="stButtonGroup"] {
+        width: 100% !important;
+    }
+    button[data-variant="pills"] {
         padding: 6px 12px !important;
         font-size: 15px !important;
         font-weight: 700 !important;
         border-radius: 8px !important;
         border: 1px solid #ddd !important;
     }
-    div[data-testid="stPills"] button[data-checked="true"],
-    div[data-testid="stPills"] button[aria-checked="true"],
-    div[data-testid="stPills"] button[aria-pressed="true"] {
+    button[data-variant="pills"][aria-checked="true"],
+    button[data-variant="pills"][aria-pressed="true"],
+    button[data-variant="pills"][data-selected="true"] {
         background-color: #4CAF50 !important;
         color: #ffffff !important;
         border: 1px solid #4CAF50 !important;
+    }
+    button[data-variant="pills"][aria-checked="true"] p,
+    button[data-variant="pills"][aria-pressed="true"] p {
+        color: #ffffff !important;
     }
     
     /* -----------------------------------------
        🎚️ 4. 시간 선택 바 (가로 100% 꽉 차는 대형 게이지 막대)
        ----------------------------------------- */
-    /* 최상위 컨테이너 및 부모 래퍼 폭 100% 강제 */
-    div[data-testid="stSegmentedControl"],
-    div:has(> div[data-testid="stSegmentedControl"]) {
+    /* ✨ 핵심 1: fit-content로 묶여있던 최상위 부모 컨테이너를 100%로 강제 확장 */
+    div.st-key-time_seg_ctrl,
+    div[data-testid="stElementContainer"].st-key-time_seg_ctrl,
+    div.st-key-time_seg_ctrl > div[data-testid="stButtonGroup"] {
         width: 100% !important;
         max-width: 100% !important;
+        display: block !important;
     }
     
-    /* 막대 내부 그룹 컨테이너 (칸수에 상관없이 무조건 가로 100% 꽉 채움) */
-    div[data-testid="stSegmentedControl"] > div,
-    div[data-testid="stSegmentedControl"] div[role="radiogroup"],
-    div[data-testid="stSegmentedControl"] div[role="group"],
-    div[data-testid="stSegmentedControl"] div[data-baseweb="button-group"] {
+    /* ✨ 핵심 2: 실제 버튼들을 감싸는 role="toolbar" 컨테이너를 100% Flex 박스로 변환 */
+    div.st-key-time_seg_ctrl div[role="toolbar"],
+    div[data-testid="stButtonGroup"]:has(button[data-variant="segmented_control"]) div[role="toolbar"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         width: 100% !important;
         max-width: 100% !important;
         background-color: #f1f3f5 !important;
-        border: 2.5px solid #222222 !important; /* 눈에 확 띄는 진한 테두리 */
+        border: 2.5px solid #222222 !important;
         border-radius: 12px !important;
         padding: 0 !important;
         gap: 0 !important;
@@ -89,18 +99,12 @@ st.markdown("""
         box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.12) !important;
     }
     
-    /* 내부 불필요한 애니메이션/여백 요소 숨김 */
-    div[data-testid="stSegmentedControl"] > div > :not(label):not(button):not(div) {
-        display: none !important;
-    }
-    
-    /* ✨ 개별 시간 칸: 4칸이든 6칸이든 1/N로 똑같이 나눠서 가로를 꽉 채움 (button 및 label 모두 대응) */
-    div[data-testid="stSegmentedControl"] label,
-    div[data-testid="stSegmentedControl"] button {
-        flex: 1 1 0% !important; /* 핵심: 잔여 공간을 무조건 균등 분배 */
+    /* ✨ 핵심 3: 개별 시간 버튼 (4칸이든 6칸이든 1/N 비율로 화면 끝까지 꽉 채움) */
+    button[data-variant="segmented_control"] {
+        flex: 1 1 0% !important;
         width: 100% !important;
-        min-width: 0 !important; /* 많은 칸이 들어가도 밖으로 넘치지 않게 축소 허용 */
-        height: 68px !important; /* 시원하고 큼직한 높이 */
+        min-width: 0 !important;
+        height: 68px !important;
         margin: 0 !important;
         padding: 0 2px !important;
         border: none !important;
@@ -114,16 +118,25 @@ st.markdown("""
         transition: all 0.15s ease-in-out !important;
     }
     
-    /* 마지막 칸 우측 구분선 제거 */
-    div[data-testid="stSegmentedControl"] label:last-of-type,
-    div[data-testid="stSegmentedControl"] button:last-of-type {
+    /* 마지막 버튼 우측 구분선 제거 */
+    button[data-variant="segmented_control"]:last-of-type {
         border-right: none !important;
     }
     
-    /* ✨ 시간 글자: 굵고 선명하게 (칸이 많아져도 안 잘리도록 반응형 폰트 적용) */
-    div[data-testid="stSegmentedControl"] p,
-    div[data-testid="stSegmentedControl"] span {
-        font-size: clamp(14px, 4vw, 19px) !important;
+    /* 버튼 내부 래퍼들도 중앙 정렬 유지 */
+    button[data-variant="segmented_control"] > div,
+    button[data-variant="segmented_control"] div[data-testid="stMarkdownContainer"] {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* ✨ 시간 글자: 굵고 큼직하게 */
+    button[data-variant="segmented_control"] p {
+        font-size: clamp(15px, 4.2vw, 20px) !important;
         font-weight: 900 !important;
         color: #333333 !important;
         margin: 0 !important;
@@ -131,37 +144,28 @@ st.markdown("""
         white-space: nowrap !important;
         letter-spacing: -0.5px !important;
         text-align: center !important;
+        line-height: 1 !important;
     }
     
-    /* ✅ 선택(터치)되었을 때 초록색 게이지 점등 효과 */
-    div[data-testid="stSegmentedControl"] label[data-checked="true"],
-    div[data-testid="stSegmentedControl"] label:has(input:checked),
-    div[data-testid="stSegmentedControl"] button[data-checked="true"],
-    div[data-testid="stSegmentedControl"] button[aria-checked="true"],
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
+    /* ✅ 선택(터치)되었을 때 초록색 게이지 점등 효과 (aria-pressed="true" 타겟팅) */
+    button[data-variant="segmented_control"][aria-pressed="true"],
+    button[data-variant="segmented_control"][data-selected="true"],
+    button[data-variant="segmented_control"][aria-checked="true"] {
         background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%) !important;
+        background-color: #4CAF50 !important;
         box-shadow: inset 0px 2px 5px rgba(0, 0, 0, 0.2) !important;
     }
     
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
-    div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) p,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) span,
-    div[data-testid="stSegmentedControl"] button[data-checked="true"] p,
-    div[data-testid="stSegmentedControl"] button[data-checked="true"] span,
-    div[data-testid="stSegmentedControl"] button[aria-checked="true"] p,
-    div[data-testid="stSegmentedControl"] button[aria-checked="true"] span,
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] p,
-    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] span {
+    button[data-variant="segmented_control"][aria-pressed="true"] p,
+    button[data-variant="segmented_control"][data-selected="true"] p,
+    button[data-variant="segmented_control"][aria-checked="true"] p {
         color: #ffffff !important;
         text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3) !important;
     }
     
-    /* 포커스 테두리 제거 */
-    div[data-testid="stSegmentedControl"] label:focus,
-    div[data-testid="stSegmentedControl"] label:focus-within,
-    div[data-testid="stSegmentedControl"] button:focus,
-    div[data-testid="stSegmentedControl"] button:focus-within {
+    /* 포커스 시 기본 테두리 제거 */
+    button[data-variant="segmented_control"]:focus,
+    button[data-variant="segmented_control"]:focus-visible {
         outline: none !important;
         box-shadow: none !important;
     }
@@ -425,7 +429,6 @@ with tab1:
             
             if members:
                 try:
-                    # 이름 선택 Pills
                     pill_val = st.pills("기존 회원", options=members, key="pill_member", label_visibility="collapsed")
                 except AttributeError:
                     sel = st.multiselect("기존 회원", options=members, placeholder="👇 기존 회원 선택 (검색 가능)", max_selections=1, label_visibility="collapsed")
@@ -446,7 +449,7 @@ with tab1:
                             return f"{start_hr}~{end_hr}"
                         return f"{start_hr}~"
 
-                    # ✨ 시간 선택 바 (가로 100% 꽉 차는 게이지 형태)
+                    # ✨ 시간 선택 바 (key="time_seg_ctrl"로.st-key-time_seg_ctrl 클래스 생성)
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
