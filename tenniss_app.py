@@ -437,7 +437,7 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (참석할 시간 칸을 터치해 초록불을 켜주세요 👆)")
+            st.markdown("**2️⃣ 참석 시간 선택**")
             
             selected_times = []
             if available_time_slots:
