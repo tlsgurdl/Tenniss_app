@@ -52,89 +52,116 @@ st.markdown("""
         border-radius: 8px !important;
         border: 1px solid #ddd !important;
     }
-    div[data-testid="stPills"] button[data-checked="true"] {
+    div[data-testid="stPills"] button[data-checked="true"],
+    div[data-testid="stPills"] button[aria-checked="true"],
+    div[data-testid="stPills"] button[aria-pressed="true"] {
         background-color: #4CAF50 !important;
         color: #ffffff !important;
         border: 1px solid #4CAF50 !important;
     }
     
     /* -----------------------------------------
-       🎚️ 4. 시간 선택 바 (글자 크기 UP, 꽉 차는 스와이프 막대)
+       🎚️ 4. 시간 선택 바 (가로 100% 꽉 차는 대형 게이지 막대)
        ----------------------------------------- */
-    div[data-testid="stSegmentedControl"] {
+    /* 최상위 컨테이너 및 부모 래퍼 폭 100% 강제 */
+    div[data-testid="stSegmentedControl"],
+    div:has(> div[data-testid="stSegmentedControl"]) {
         width: 100% !important;
+        max-width: 100% !important;
     }
     
-    /* 막대 전체 컨테이너 설정 */
-    div[data-testid="stSegmentedControl"] > div {
+    /* 막대 내부 그룹 컨테이너 (칸수에 상관없이 무조건 가로 100% 꽉 채움) */
+    div[data-testid="stSegmentedControl"] > div,
+    div[data-testid="stSegmentedControl"] div[role="radiogroup"],
+    div[data-testid="stSegmentedControl"] div[role="group"],
+    div[data-testid="stSegmentedControl"] div[data-baseweb="button-group"] {
         display: flex !important;
-        flex-wrap: nowrap !important; /* 한 줄 유지 */
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
         width: 100% !important;
-        overflow-x: auto !important;  /* ✨ 가로 스와이프 허용 */
+        max-width: 100% !important;
         background-color: #f1f3f5 !important;
-        border: 2px solid #ccc !important;
-        border-radius: 8px !important;
+        border: 2.5px solid #222222 !important; /* 눈에 확 띄는 진한 테두리 */
+        border-radius: 12px !important;
         padding: 0 !important;
         gap: 0 !important;
-        
-        /* 모바일 스크롤바 가리기 (깔끔한 화면 유지) */
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-    div[data-testid="stSegmentedControl"] > div::-webkit-scrollbar {
-        display: none;
+        overflow: hidden !important;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.12) !important;
     }
     
-    /* 투명 애니메이션 박스 숨김 */
-    div[data-testid="stSegmentedControl"] > div > :not(label) {
+    /* 내부 불필요한 애니메이션/여백 요소 숨김 */
+    div[data-testid="stSegmentedControl"] > div > :not(label):not(button):not(div) {
         display: none !important;
     }
     
-    /* ✨ 개별 시간 박스: 너비 강제 확대 */
-    div[data-testid="stSegmentedControl"] label {
-        flex: 1 0 auto !important; /* 찌그러지지 않고 내용물만큼 크기 유지 */
-        min-width: 65px !important; /* ✨ 박스 하나당 최소 65px 보장 (터치하기 좋게 확대!) */
-        height: 60px !important;    /* ✨ 높이도 살짝 키움 */
-        border-right: 1px solid #ccc !important; 
-        border-radius: 0 !important;
+    /* ✨ 개별 시간 칸: 4칸이든 6칸이든 1/N로 똑같이 나눠서 가로를 꽉 채움 (button 및 label 모두 대응) */
+    div[data-testid="stSegmentedControl"] label,
+    div[data-testid="stSegmentedControl"] button {
+        flex: 1 1 0% !important; /* 핵심: 잔여 공간을 무조건 균등 분배 */
+        width: 100% !important;
+        min-width: 0 !important; /* 많은 칸이 들어가도 밖으로 넘치지 않게 축소 허용 */
+        height: 68px !important; /* 시원하고 큼직한 높이 */
         margin: 0 !important;
-        padding: 0 10px !important; /* ✨ 양옆 여백 추가하여 박스 팽창 */
+        padding: 0 2px !important;
+        border: none !important;
+        border-right: 1.5px solid #cccccc !important;
+        border-radius: 0 !important;
+        background-color: transparent !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: center !important; 
+        justify-content: center !important;
         cursor: pointer !important;
+        transition: all 0.15s ease-in-out !important;
     }
     
-    div[data-testid="stSegmentedControl"] label:last-of-type {
+    /* 마지막 칸 우측 구분선 제거 */
+    div[data-testid="stSegmentedControl"] label:last-of-type,
+    div[data-testid="stSegmentedControl"] button:last-of-type {
         border-right: none !important;
     }
     
-    /* ✨ 시간 글자: 크고 굵게 변경 */
+    /* ✨ 시간 글자: 굵고 선명하게 (칸이 많아져도 안 잘리도록 반응형 폰트 적용) */
     div[data-testid="stSegmentedControl"] p,
     div[data-testid="stSegmentedControl"] span {
-        font-size: 18px !important; /* ✨ 기존 16px -> 18px로 큼직하게! */
-        font-weight: 900 !important; /* ✨ 가장 두껍게! */
-        color: #555 !important;
+        font-size: clamp(14px, 4vw, 19px) !important;
+        font-weight: 900 !important;
+        color: #333333 !important;
         margin: 0 !important;
-        white-space: nowrap !important; /* 줄바꿈 방지 */
+        padding: 0 !important;
+        white-space: nowrap !important;
         letter-spacing: -0.5px !important;
+        text-align: center !important;
     }
     
-    /* 선택되었을 때 초록색 */
+    /* ✅ 선택(터치)되었을 때 초록색 게이지 점등 효과 */
     div[data-testid="stSegmentedControl"] label[data-checked="true"],
-    div[data-testid="stSegmentedControl"] label:has(input:checked) {
-        background-color: #4CAF50 !important;
+    div[data-testid="stSegmentedControl"] label:has(input:checked),
+    div[data-testid="stSegmentedControl"] button[data-checked="true"],
+    div[data-testid="stSegmentedControl"] button[aria-checked="true"],
+    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
+        background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%) !important;
+        box-shadow: inset 0px 2px 5px rgba(0, 0, 0, 0.2) !important;
     }
+    
     div[data-testid="stSegmentedControl"] label[data-checked="true"] p,
     div[data-testid="stSegmentedControl"] label[data-checked="true"] span,
     div[data-testid="stSegmentedControl"] label:has(input:checked) p,
-    div[data-testid="stSegmentedControl"] label:has(input:checked) span {
+    div[data-testid="stSegmentedControl"] label:has(input:checked) span,
+    div[data-testid="stSegmentedControl"] button[data-checked="true"] p,
+    div[data-testid="stSegmentedControl"] button[data-checked="true"] span,
+    div[data-testid="stSegmentedControl"] button[aria-checked="true"] p,
+    div[data-testid="stSegmentedControl"] button[aria-checked="true"] span,
+    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] p,
+    div[data-testid="stSegmentedControl"] button[aria-pressed="true"] span {
         color: #ffffff !important;
+        text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3) !important;
     }
     
     /* 포커스 테두리 제거 */
     div[data-testid="stSegmentedControl"] label:focus,
-    div[data-testid="stSegmentedControl"] label:focus-within {
+    div[data-testid="stSegmentedControl"] label:focus-within,
+    div[data-testid="stSegmentedControl"] button:focus,
+    div[data-testid="stSegmentedControl"] button:focus-within {
         outline: none !important;
         box-shadow: none !important;
     }
@@ -321,6 +348,8 @@ if "view_month" not in st.session_state:
 if st.session_state.clear_input:
     if "pill_member" in st.session_state:
         st.session_state.pill_member = None
+    if "time_seg_ctrl" in st.session_state:
+        st.session_state.time_seg_ctrl = []
     st.session_state.clear_input = False
 
 def fetch_data():
@@ -405,7 +434,7 @@ with tab1:
             user_name = st.text_input("닉네임(이름) 입력", value=pill_val if pill_val else "", placeholder="예: 홍길동", label_visibility="collapsed")
             
             st.markdown("---")
-            st.markdown("**2️⃣ 참석 시간 선택** (해당 시간 칸을 자유롭게 터치하여 켜주세요 👆)")
+            st.markdown("**2️⃣ 참석 시간 선택** (참석할 시간 칸을 터치해 초록불을 켜주세요 👆)")
             
             selected_times = []
             if available_time_slots:
@@ -417,12 +446,13 @@ with tab1:
                             return f"{start_hr}~{end_hr}"
                         return f"{start_hr}~"
 
-                    # ✨ 시간 바 - segmented_control 사용
+                    # ✨ 시간 선택 바 (가로 100% 꽉 차는 게이지 형태)
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
                         selection_mode="multi",
                         format_func=format_time_label, 
+                        key="time_seg_ctrl",
                         label_visibility="collapsed"
                     )
                     selected_times = list(raw_selection) if raw_selection else []
@@ -435,9 +465,9 @@ with tab1:
                     )
                 
                 if selected_times:
-                    st.markdown(f"<div style='text-align: center; color: #4CAF50; font-weight: 800; margin-top: 15px; font-size: 14px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; color: #388E3C; font-weight: 900; margin-top: 10px; font-size: 15px;'>✅ 총 {len(selected_times)}시간 선택됨</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; color: #999; margin-top: 15px; font-size: 13px;'>모바일에서는 시간을 좌우로 밀어서(스와이프) 확인하세요.</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='text-align: center; color: #777; margin-top: 10px; font-size: 13px;'>위 막대에서 원하시는 시간대를 모두 터치해 주세요.</div>", unsafe_allow_html=True)
                         
             st.write("") 
             
