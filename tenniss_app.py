@@ -142,7 +142,7 @@ st.markdown("""
     /* ✨ 마지막 칸 우측 끝에 들어갈 종료 시간 스타일 */
     button[data-variant="segmented_control"]:last-of-type div[data-testid="stMarkdownContainer"]::after {
         content: "";
-        font-size: clamp(14px, 4vw, 19px) !important;
+        font-size: clamp(18px, 4vw, 23px) !important;
         font-weight: 900 !important;
         color: #333333 !important;
         line-height: 1 !important;
@@ -151,7 +151,7 @@ st.markdown("""
     
     /* 시간 글자 (왼쪽 시작 시간) */
     button[data-variant="segmented_control"] p {
-        font-size: clamp(14px, 4vw, 19px) !important; /* 글자 크기 조절은 위 ::after와 함께 여기서! */
+        font-size: clamp(18px, 4vw, 23px) !important; /* 글자 크기 조절은 위 ::after와 함께 여기서! */
         font-weight: 900 !important;
         color: #333333 !important;
         margin: 0 !important;
