@@ -70,10 +70,9 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* -----------------------------------------
-       🎚️ 4. 시간 선택 바 (가로 100% 꽉 차는 대형 게이지 막대)
+/* -----------------------------------------
+       🎚️ 4. 시간 선택 바 (타임라인 눈금형 디자인)
        ----------------------------------------- */
-    /* ✨ 핵심 1: fit-content로 묶여있던 최상위 부모 컨테이너를 100%로 강제 확장 */
     div.st-key-time_seg_ctrl,
     div[data-testid="stElementContainer"].st-key-time_seg_ctrl,
     div.st-key-time_seg_ctrl > div[data-testid="stButtonGroup"] {
@@ -82,7 +81,6 @@ st.markdown("""
         display: block !important;
     }
     
-    /* ✨ 핵심 2: 실제 버튼들을 감싸는 role="toolbar" 컨테이너를 100% Flex 박스로 변환 */
     div.st-key-time_seg_ctrl div[role="toolbar"],
     div[data-testid="stButtonGroup"]:has(button[data-variant="segmented_control"]) div[role="toolbar"] {
         display: flex !important;
@@ -99,55 +97,70 @@ st.markdown("""
         box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.12) !important;
     }
     
-    /* ✨ 핵심 3: 개별 시간 버튼 (4칸이든 6칸이든 1/N 비율로 화면 끝까지 꽉 채움) */
+    /* 개별 시간 버튼 */
     button[data-variant="segmented_control"] {
         flex: 1 1 0% !important;
         width: 100% !important;
         min-width: 0 !important;
-        height: 52px !important;
+        height: 68px !important; /* 높이 조절은 여기서! */
         margin: 0 !important;
-        padding: 0 2px !important;
+        padding: 0 7px !important; /* 숫자가 경계선에 너무 딱 붙지 않게 살짝 여백 */
         border: none !important;
         border-right: 1.5px solid #cccccc !important;
         border-radius: 0 !important;
         background-color: transparent !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: center !important;
+        justify-content: flex-start !important; /* ✨ 기본 왼쪽 정렬 */
         cursor: pointer !important;
         transition: all 0.15s ease-in-out !important;
     }
     
-    /* 마지막 버튼 우측 구분선 제거 */
     button[data-variant="segmented_control"]:last-of-type {
         border-right: none !important;
     }
     
-    /* 버튼 내부 래퍼들도 중앙 정렬 유지 */
+    /* ✨ 버튼 내부의 모든 중첩 div/span을 왼쪽 정렬로 풀기 */
     button[data-variant="segmented_control"] > div,
+    button[data-variant="segmented_control"] > div > span,
     button[data-variant="segmented_control"] div[data-testid="stMarkdownContainer"] {
         display: flex !important;
         align-items: center !important;
-        justify-content: center !important;
+        justify-content: flex-start !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
     }
     
-    /* ✨ 시간 글자: 굵고 큼직하게 */
+    /* ✨ 마지막 칸 전용: 시작 시간은 왼쪽, 끝 시간(::after)은 오른쪽 양끝 배분 */
+    button[data-variant="segmented_control"]:last-of-type div[data-testid="stMarkdownContainer"] {
+        justify-content: space-between !important;
+    }
+    
+    /* ✨ 마지막 칸 우측 끝에 들어갈 종료 시간 스타일 */
+    button[data-variant="segmented_control"]:last-of-type div[data-testid="stMarkdownContainer"]::after {
+        content: attr(data-end-time);
+        font-size: clamp(14px, 4vw, 19px) !important;
+        font-weight: 900 !important;
+        color: #333333 !important;
+        line-height: 1 !important;
+        letter-spacing: -0.5px !important;
+    }
+    
+    /* 시간 글자 (왼쪽 시작 시간) */
     button[data-variant="segmented_control"] p {
-        font-size: clamp(15px, 4.2vw, 20px) !important;
+        font-size: clamp(14px, 4vw, 19px) !important; /* 글자 크기 조절은 위 ::after와 함께 여기서! */
         font-weight: 900 !important;
         color: #333333 !important;
         margin: 0 !important;
         padding: 0 !important;
         white-space: nowrap !important;
         letter-spacing: -0.5px !important;
-        text-align: center !important;
+        text-align: left !important;
         line-height: 1 !important;
     }
     
-    /* ✅ 선택(터치)되었을 때 초록색 게이지 점등 효과 (aria-pressed="true" 타겟팅) */
+    /* ✅ 선택(터치)되었을 때 초록색 점등 */
     button[data-variant="segmented_control"][aria-pressed="true"],
     button[data-variant="segmented_control"][data-selected="true"],
     button[data-variant="segmented_control"][aria-checked="true"] {
@@ -156,14 +169,17 @@ st.markdown("""
         box-shadow: inset 0px 2px 5px rgba(0, 0, 0, 0.2) !important;
     }
     
+    /* 선택 시 왼쪽 시작 시간 & 마지막 칸 오른쪽 끝 시간 모두 흰색으로 변경 */
     button[data-variant="segmented_control"][aria-pressed="true"] p,
     button[data-variant="segmented_control"][data-selected="true"] p,
-    button[data-variant="segmented_control"][aria-checked="true"] p {
+    button[data-variant="segmented_control"][aria-checked="true"] p,
+    button[data-variant="segmented_control"][aria-pressed="true"]:last-of-type div[data-testid="stMarkdownContainer"]::after,
+    button[data-variant="segmented_control"][data-selected="true"]:last-of-type div[data-testid="stMarkdownContainer"]::after,
+    button[data-variant="segmented_control"][aria-checked="true"]:last-of-type div[data-testid="stMarkdownContainer"]::after {
         color: #ffffff !important;
         text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3) !important;
     }
     
-    /* 포커스 시 기본 테두리 제거 */
     button[data-variant="segmented_control"]:focus,
     button[data-variant="segmented_control"]:focus-visible {
         outline: none !important;
@@ -439,17 +455,24 @@ with tab1:
             st.markdown("---")
             st.markdown("**2️⃣ 참석 시간 선택**")
             
-            selected_times = []
+selected_times = []
             if available_time_slots:
                 try:
+                    # 1) 물결표 없이 깔끔하게 시작 시간 숫자만 추출 (예: "18", "19")
                     def format_time_label(x):
-                        start_hr = x.split(":")[0]
-                        if x == available_time_slots[-1]:
-                            end_hr = x.split(" ~ ")[1].split(":")[0]
-                            return f"{start_hr}~{end_hr}"
-                        return f"{start_hr}~"
+                        return x.split(":")[0]
 
-                    # ✨ 시간 선택 바 (key="time_seg_ctrl"로.st-key-time_seg_ctrl 클래스 생성)
+                    # 2) 마지막 시간대의 종료 시간 추출 (예: "22") 및 CSS 주입
+                    last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
+                    st.markdown(f"""
+                    <style>
+                        button[data-variant="segmented_control"]:last-of-type div[data-testid="stMarkdownContainer"]::after {{
+                            content: "{last_end_hr}" !important;
+                        }}
+                    </style>
+                    """, unsafe_allow_html=True)
+
+                    # ✨ 시간 선택 바
                     raw_selection = st.segmented_control(
                         "시간 선택 바",
                         options=available_time_slots,
