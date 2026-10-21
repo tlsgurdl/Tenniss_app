@@ -451,9 +451,9 @@ with tab1:
     st.markdown(f"**📅 오늘 날짜: {today_str}**")
     current_db = fetch_data()
 
-    with st.expander("🙋‍♂️ [회원용] 3초 출석 체크 / 취소", expanded=True):
+    with st.expander("🙋‍♂️ [회원용] 3초 출석 체크", expanded=True):
         if not available_time_slots:
-            st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺 (휴관 또는 대회)")
+            st.error("오늘은 예약된 코트 일정이 없습니다! 푹 쉬세요 🍺")
         else:
             st.markdown("**1️⃣ 이름 입력** (아래 태그를 누르거나 직접 입력하세요)")
             members = get_all_members()
