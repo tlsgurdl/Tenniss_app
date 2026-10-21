@@ -430,7 +430,28 @@ def cancel_attendance(name):
 # ==========================================
 # 🖥️ 4. UI 렌더링
 # ==========================================
-st.title("🎾 고촌클럽 출석부")
+# 기존 st.title("🎾 고촌클럽 출석부") 대신 교체
+st.markdown("""
+<div style="
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-left: 6px solid #4CAF50;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+">
+    <div style="font-size: 11px; font-weight: 800; color: #4CAF50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px;">
+        Gochon Tennis Club
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #212529; letter-spacing: -0.5px;">
+            고촌클럽 출석부
+        </h2>
+        <span style="font-size: 20px;">🎾</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 tab1, tab2 = st.tabs(["🎾 오늘의 출석부", "📅 월간 예약 달력"])
 
 with tab1:
