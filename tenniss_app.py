@@ -433,23 +433,33 @@ def cancel_attendance(name):
 # 기존 st.title("🎾 고촌클럽 출석부") 대신 교체
 st.markdown("""
 <div style="
-    background: #ffffff;
-    border: 1px solid #e9ecef;
-    border-left: 6px solid #4CAF50;
+    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
     border-radius: 12px;
-    padding: 16px 18px;
+    padding: 16px 20px;
     margin-bottom: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    box-shadow: 0 4px 14px rgba(27, 67, 50, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 ">
-    <div style="font-size: 11px; font-weight: 800; color: #4CAF50; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px;">
-        Gochon Tennis Club
+    <div>
+        <div style="font-size: 11px; font-weight: 700; color: #b7e4c7; letter-spacing: 1px;">
+            GOCHON TENNIS
+        </div>
+        <div style="font-size: 21px; font-weight: 900; color: #ffffff; margin-top: 2px; letter-spacing: -0.5px;">
+            출석 체크 & 코트 현황
+        </div>
     </div>
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-        <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #212529; letter-spacing: -0.5px;">
-            고촌클럽 출석부
-        </h2>
-        <span style="font-size: 20px;">🎾</span>
-    </div>
+    <div style="
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+    ">🎾</div>
 </div>
 """, unsafe_allow_html=True)
 tab1, tab2 = st.tabs(["🎾 오늘의 출석부", "📅 월간 예약 달력"])
