@@ -431,16 +431,17 @@ def cancel_attendance(name):
 # 🖥️ 4. UI 렌더링
 # ==========================================
 st.markdown("""
-<div style="position: relative; overflow: hidden; background: linear-gradient(135deg, #133a27 0%, #1e5239 100%); border-radius: 12px; padding: 22px 20px 20px 20px; margin-bottom: 22px; box-shadow: 0 4px 15px rgba(19, 58, 39, 0.25);">
-<div style="position: absolute; right: -40px; top: -55px; width: 340px; height: 220px; transform: rotate(-25deg); pointer-events: none;">
-<div style="position: absolute; top: 110px; left: 80px; width: 260px; height: 3.5px; background: rgba(255, 255, 255, 0.22); border-radius: 2px;"></div>
-<div style="position: absolute; top: 15px; left: 240px; width: 3.5px; height: 95px; background: rgba(255, 255, 255, 0.22); border-radius: 2px;"></div>
-<div style="position: absolute; top: -10px; left: 135px; width: 3.5px; height: 230px; background: rgba(255, 255, 255, 0.22); border-radius: 2px;"></div>
-<div style="position: absolute; top: -10px; left: 95px; width: 3.5px; height: 230px; background: rgba(255, 255, 255, 0.22); border-radius: 2px;"></div>
+<div style="position: relative; overflow: hidden; background: linear-gradient(135deg, #133a27 0%, #1e5239 100%); border-radius: 12px; padding: 20px 18px 18px 18px; margin-bottom: 22px; box-shadow: 0 4px 15px rgba(19, 58, 39, 0.25);">
+<div style="position: absolute; right: -30px; top: -55px; width: 340px; height: 230px; transform: rotate(-25deg); pointer-events: none;">
+<div style="position: absolute; top: -10px; left: 95px; width: 3.5px; height: 240px; background: rgba(255, 255, 255, 0.22); border-radius: 1.5px;"></div>
+<div style="position: absolute; top: -10px; left: 135px; width: 3.5px; height: 240px; background: rgba(255, 255, 255, 0.22); border-radius: 1.5px;"></div>
+<div style="position: absolute; top: 110px; left: 138.5px; width: 101.5px; height: 3.5px; background: rgba(255, 255, 255, 0.22);"></div>
+<div style="position: absolute; top: 110px; left: 243.5px; width: 80px; height: 3.5px; background: rgba(255, 255, 255, 0.22);"></div>
+<div style="position: absolute; top: 15px; left: 240px; width: 3.5px; height: 98.5px; background: rgba(255, 255, 255, 0.22); border-radius: 1.5px 1.5px 0 0;"></div>
 </div>
 <div style="position: relative; z-index: 1;">
-<div style="font-size: 11px; font-weight: 800; color: #86efac; letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase;">GOCHON TENNIS CLUB</div>
-<div style="font-size: clamp(23px, 7vw, 29px); font-weight: 900; color: #ffffff; letter-spacing: -0.8px; line-height: 1.15; white-space: nowrap;">고촌 테니스클럽 출석부</div>
+<div style="font-size: 11.5px; font-weight: 800; color: #86efac; letter-spacing: 2px; margin-bottom: 3px; text-transform: uppercase;">GOCHON TENNIS CLUB</div>
+<div style="font-size: clamp(26px, 8vw, 34px); font-weight: 900; color: #ffffff; letter-spacing: -0.8px; line-height: 1.12; white-space: nowrap;">고촌 테니스클럽 출석부</div>
 </div>
 </div>
 """, unsafe_allow_html=True)
