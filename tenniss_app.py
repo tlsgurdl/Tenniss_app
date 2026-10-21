@@ -430,36 +430,62 @@ def cancel_attendance(name):
 # ==========================================
 # 🖥️ 4. UI 렌더링
 # ==========================================
-# 기존 st.title("🎾 고촌클럽 출석부") 대신 교체
 st.markdown("""
 <div style="
-    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #133a27 0%, #1e5239 100%);
     border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 14px rgba(27, 67, 50, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    padding: 22px 20px 20px 20px;
+    margin-bottom: 22px;
+    box-shadow: 0 4px 15px rgba(19, 58, 39, 0.25);
 ">
-    <div>
-        <div style="font-size: 11px; font-weight: 700; color: #b7e4c7; letter-spacing: 1px;">
-            GOCHON TENNIS
+    <!-- 비스듬한 테니스 코트 라인 데코레이션 (우측 배경) -->
+    <div style="
+        position: absolute;
+        right: -35px;
+        top: -45px;
+        width: 170px;
+        height: 170px;
+        border-left: 3px solid rgba(255, 255, 255, 0.16);
+        border-bottom: 3px solid rgba(255, 255, 255, 0.16);
+        transform: rotate(-25deg);
+        pointer-events: none;
+    "></div>
+    <div style="
+        position: absolute;
+        right: -10px;
+        top: -20px;
+        width: 110px;
+        height: 110px;
+        border-left: 2px dashed rgba(255, 255, 255, 0.12);
+        transform: rotate(-25deg);
+        pointer-events: none;
+    "></div>
+
+    <!-- 텍스트 영역 (꽉 차고 굵게) -->
+    <div style="position: relative; z-index: 1;">
+        <div style="
+            font-size: 11px;
+            font-weight: 800;
+            color: #86efac;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        ">
+            GOCHON TENNIS CLUB
         </div>
-        <div style="font-size: 21px; font-weight: 900; color: #ffffff; margin-top: 2px; letter-spacing: -0.5px;">
-            출석 체크 & 코트 현황
+        <div style="
+            font-size: clamp(23px, 7vw, 29px);
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: -0.8px;
+            line-height: 1.15;
+            white-space: nowrap;
+        ">
+            고촌 테니스클럽 출석부
         </div>
     </div>
-    <div style="
-        background: rgba(255, 255, 255, 0.15);
-        border-radius: 50%;
-        width: 38px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 19px;
-    ">🎾</div>
 </div>
 """, unsafe_allow_html=True)
 tab1, tab2 = st.tabs(["🎾 오늘의 출석부", "📅 월간 예약 달력"])
