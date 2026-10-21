@@ -432,11 +432,14 @@ def cancel_attendance(name):
 # ==========================================
 st.markdown("""
 <div style="position: relative; overflow: hidden; background: linear-gradient(135deg, #133a27 0%, #1e5239 100%); border-radius: 12px; padding: 22px 20px 20px 20px; margin-bottom: 22px; box-shadow: 0 4px 15px rgba(19, 58, 39, 0.25);">
-<div style="position: absolute; right: -25px; top: -30px; width: 170px; height: 170px; transform: rotate(-25deg); pointer-events: none;">
-<div style="position: absolute; top: 55%; left: 0; width: 100%; height: 3.5px; background: rgba(255, 255, 255, 0.22); border-radius: 2px;"></div>
-<div style="position: absolute; top: 0; left: 45%; width: 3.5px; height: 55%; background: rgba(255, 255, 255, 0.22); border-radius: 2px;"></div>
-<div style="position: absolute; top: 0; left: 0; width: 45%; height: 55%; background: rgba(255, 255, 255, 0.04);"></div>
-</div>
+<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;" viewBox="0 0 420 100" preserveAspectRatio="none">
+<g transform="rotate(-18 210 50)" stroke="rgba(255, 255, 255, 0.22)" stroke-width="3" fill="none" stroke-linecap="square">
+<line x1="-100" y1="12" x2="520" y2="12" />
+<line x1="-100" y1="46" x2="520" y2="46" />
+<line x1="285" y1="46" x2="285" y2="180" />
+<line x1="285" y1="110" x2="520" y2="110" />
+</g>
+</svg>
 <div style="position: relative; z-index: 1;">
 <div style="font-size: 11px; font-weight: 800; color: #86efac; letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase;">GOCHON TENNIS CLUB</div>
 <div style="font-size: clamp(23px, 7vw, 29px); font-weight: 900; color: #ffffff; letter-spacing: -0.8px; line-height: 1.15; white-space: nowrap;">고촌 테니스클럽 출석부</div>
