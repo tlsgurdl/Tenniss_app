@@ -143,7 +143,7 @@ st.markdown("""
     button[data-variant="segmented_control"]:last-of-type div[data-testid="stMarkdownContainer"]::after {
         content: "";
         font-size: clamp(22px, 4vw, 27px) !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         color: #333333 !important;
         line-height: 1 !important;
         letter-spacing: -0.5px !important;
@@ -152,7 +152,7 @@ st.markdown("""
     /* 시간 글자 (왼쪽 시작 시간) */
     button[data-variant="segmented_control"] p {
         font-size: clamp(22px, 4vw, 27px) !important; /* 글자 크기 조절은 위 ::after와 함께 여기서! */
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         color: #333333 !important;
         margin: 0 !important;
         padding: 0 !important;
