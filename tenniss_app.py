@@ -478,12 +478,48 @@ with tab1:
                     def format_time_label(x):
                         return x.split(":")[0]
 
-                    # 2) 마지막 시간대의 종료 시간 추출 (예: "22") 및 CSS 주입
+# 2) 시간대 개수에 따라 글자 크기/패딩 자동 계산 및 동적 주입
+                    slot_count = len(available_time_slots)
                     last_end_hr = available_time_slots[-1].split(" ~ ")[1].split(":")[0]
+
+                    # 슬롯 수에 따른 반응형 사이즈 계산 (주말 다수 슬롯 자동 대응)
+                    if slot_count >= 7:
+                        # 7칸 이상 (주말/공휴일 등 긴 대관): 글자 축소 및 자간 축소로 겹침 완전 방지
+                        font_size = "clamp(13px, 3.2vw, 16px)"
+                        btn_padding = "0 3px"
+                        letter_spacing = "-1px"
+                        btn_height = "48px"
+                    elif slot_count == 6:
+                        font_size = "clamp(16px, 3.6vw, 19px)"
+                        btn_padding = "0 4px"
+                        letter_spacing = "-0.8px"
+                        btn_height = "50px"
+                    else:
+                        # 4~5칸 이하 (평일 야간 대관): 큼직하고 시원한 기본 크기 유지
+                        font_size = "clamp(20px, 4vw, 25px)"
+                        btn_padding = "0 7px"
+                        letter_spacing = "-0.5px"
+                        btn_height = "52px"
+
                     st.markdown(f"""
                     <style>
-                        button[data-variant="segmented_control"]:last-of-type div[data-testid="stMarkdownContainer"]::after {{
+                        /* 슬롯 개수에 맞춘 높이와 내부 여백 동적 적용 */
+                        div.st-key-time_seg_ctrl button[data-variant="segmented_control"] {{
+                            height: {btn_height} !important;
+                            padding: {btn_padding} !important;
+                        }}
+                        
+                        /* 시작 시간 폰트 크기 및 자간 동적 조정 */
+                        div.st-key-time_seg_ctrl button[data-variant="segmented_control"] p {{
+                            font-size: {font_size} !important;
+                            letter-spacing: {letter_spacing} !important;
+                        }}
+                        
+                        /* 마지막 칸 종료 시간 폰트 크기 및 내용 주입 */
+                        div.st-key-time_seg_ctrl button[data-variant="segmented_control"]:last-of-type div[data-testid="stMarkdownContainer"]::after {{
                             content: "{last_end_hr}" !important;
+                            font-size: {font_size} !important;
+                            letter-spacing: {letter_spacing} !important;
                         }}
                     </style>
                     """, unsafe_allow_html=True)
